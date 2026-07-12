@@ -1,5 +1,6 @@
 # 로컬 빌드 산출물은 GitHub Actions에서 매번 새로 생성합니다.
 dist/
+.build/
 
 # 의존성 폴더가 생겨도 저장소에는 포함하지 않습니다.
 node_modules/

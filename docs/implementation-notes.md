@@ -6,6 +6,25 @@
 - GitHub Actions는 정적 빌드 결과물인 `dist`를 GitHub Pages artifact로 배포하도록 구성했다.
 
 ## 다음 에셋 교체 슬롯
-- `src/main.js`의 플레이어 엔티티/`drawPlayer`는 플레이어 GLB/GLTF 모델로 교체 가능하다.
-- `src/main.js`의 공룡 엔티티/`drawDinosaur`는 무료 공룡 모델로 교체 가능하다.
+- `src/main.ts`의 `createPlayer` 프록시 모델은 플레이어 GLB/GLTF 모델로 교체 가능하다.
+- `src/main.ts`의 `createRaptor` 프록시 모델은 무료 랩터/공룡 GLB/GLTF 모델로 교체 가능하다.
 - 외부 에셋 도입 시 `public/assets` 하위에 출처별 폴더와 라이선스 파일을 함께 둔다.
+
+
+## 2026-07-12 전체화면 플레이어블 맵 전환
+- 설명 카드와 기획 요소 UI를 제거하고 캔버스를 전체화면 게임 뷰포트로 전환했다.
+- 문자열 기반 사전 제작 맵을 추가해 벽, 바위, 풀 지형을 고정 배치하고 플레이어가 WASD/방향키로 이동하게 했다.
+- 랩터 4개체를 맵 안에 배치하고 플레이어 거리 기반 추격/압박 행동을 적용했다.
+- 현재 잔여 코드 점검 결과, 이전 설명 UI 클래스와 라벨 렌더링 코드는 제거했다.
+
+
+## 2026-07-12 TypeScript/Three.js 구조화 전환
+- Canvas 2D 직접 렌더링을 TypeScript와 Three.js CDN ESM 기반 3D 씬으로 전환했다.
+- `src/main.ts`를 유일한 원본 구현 파일로 두고 `tsc`가 `.build/src/main.js`를 만든 뒤 `dist/src/main.js`로만 배포하도록 빌드 흐름을 정리했다.
+- npm registry 접근이 제한될 수 있어 Three.js는 고정 CDN URL로 로드하고, 로컬 최소 타입 선언으로 `npm run typecheck`를 유지한다.
+- 현재 잔여 코드 점검 결과, 이전 Canvas 2D 렌더링 루프와 저장소에 커밋되던 생성 JS는 제거했고 런타임 JS는 빌드 산출물로만 만든다.
+
+## 2026-07-12 듀랑고풍 3D 탑뷰 카메라 보정
+- 카메라를 수직 탑뷰가 아니라 높은 사선 탑뷰로 낮추고 우측 숄더 오프셋을 줘 전경/랩터가 3D로 튀어나와 보이게 조정했다.
+- 브라우저 F11 전체화면 사용을 전제로 `dist` 정적 서버와 전체 뷰포트 캔버스 흐름을 유지한다.
+- 현재 잔여 코드 점검 결과, 루트 `src/main.js` 생성 파일은 제거했고 TypeScript 원본만 관리한다.

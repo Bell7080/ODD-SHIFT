@@ -4,7 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "python3 -m http.server 5173",
+    "dev": "npm run build && python3 -m http.server 5173 --directory dist",
+    "typecheck": "tsc --noEmit",
+    "compile": "tsc",
     "build": "node scripts/build.mjs",
     "preview": "python3 -m http.server 4173 --directory dist"
   }
