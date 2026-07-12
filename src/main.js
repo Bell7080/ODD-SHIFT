@@ -1,22 +1,65 @@
-// Project Plateau 프로토타입: 외부 엔진 없이 Canvas 2D로 탑뷰 3D 느낌을 구현해 빌드 안정성을 확보합니다.
+// Project Plateau 플레이어블 프로토타입: Canvas 2D만으로 사전 제작 맵, 플레이어 이동, 랩터 추격을 검증합니다.
 const canvas = document.querySelector('[data-scene-canvas]');
 const ctx = canvas.getContext('2d');
-const uiState = { zoom: 1, angle: 0, dragging: false, lastX: 0 };
 
-// 기획서 기반 오브젝트 목록입니다. 추후 실제 AI/에셋 로더가 들어오면 이 데이터를 교체하면 됩니다.
-const entities = [
-  { kind: 'player', x: 0, z: 0, radius: 18, color: '#8dffba', label: 'PLAYER' },
-  { kind: 'dino', x: -135, z: -82, radius: 28, color: '#a8d36f', label: 'RAPTOR A' },
-  { kind: 'dino', x: 142, z: -36, radius: 30, color: '#d0a35f', label: 'RAPTOR B' },
-  { kind: 'dino', x: 72, z: 128, radius: 26, color: '#8fcf83', label: 'SCOUT' },
+// 입력 상태는 매 프레임 누적 처리해 WASD/방향키 이동이 부드럽게 이어지도록 합니다.
+const keys = new Set();
+const pointer = { x: 0, y: 0, active: false };
+
+// 사전 제작 맵 데이터입니다. 문자 타일을 사람이 읽기 쉬운 심볼로 유지해 이후 에디터/JSON 분리가 쉽습니다.
+const tileSize = 72;
+const mapRows = [
+  '########################',
+  '#....g....r......g.....#',
+  '#..####......####....r.#',
+  '#..#..#..g...#..#......#',
+  '#..#..#......#..#..g...#',
+  '#..####..rr..####......#',
+  '#..............g....r..#',
+  '#....gg....####........#',
+  '#..r.......#..#....g...#',
+  '#..........#..#........#',
+  '#....####..####..rr....#',
+  '#....#..#..............#',
+  '#..g.#..#....g....####.#',
+  '#....####.........#..#.#',
+  '#...........rr....#..#.#',
+  '#..r....g.........####.#',
+  '#...........g..........#',
+  '########################',
+];
+// 플레이어와 랩터는 월드 좌표 기준으로 움직이며 카메라가 플레이어를 따라갑니다.
+const player = { x: tileSize * 3.2, y: tileSize * 14.5, radius: 18, speed: 245, facing: 0 };
+const raptors = [
+  { x: tileSize * 17.5, y: tileSize * 4.5, radius: 23, speed: 112, phase: 0.2 },
+  { x: tileSize * 19.4, y: tileSize * 12.8, radius: 24, speed: 98, phase: 1.8 },
+  { x: tileSize * 6.2, y: tileSize * 7.4, radius: 21, speed: 126, phase: 3.1 },
+  { x: tileSize * 13.6, y: tileSize * 15.2, radius: 22, speed: 106, phase: 4.2 },
 ];
 
-// 절차적 바위 배치는 외부 배경 에셋 없이도 전투 동선과 엄폐물을 확인하게 해 줍니다.
-const rocks = Array.from({ length: 28 }, (_, index) => ({
-  x: Math.cos(index * 1.7) * (120 + (index % 5) * 46),
-  z: Math.sin(index * 1.3) * (110 + (index % 4) * 52),
-  size: 10 + (index % 4) * 5,
-}));
+// 충돌용 벽 판정은 맵 문자열에서 # 타일만 검사해 성능과 가독성을 함께 확보합니다.
+function isWallAt(x, y) {
+  const col = Math.floor(x / tileSize);
+  const row = Math.floor(y / tileSize);
+  return !mapRows[row] || mapRows[row][col] === '#';
+}
+
+// 원형 캐릭터가 벽 모서리에 끼지 않도록 네 방향 가장자리를 검사합니다.
+function canMoveTo(entity, nextX, nextY) {
+  const r = entity.radius * 0.78;
+  return !isWallAt(nextX - r, nextY - r)
+    && !isWallAt(nextX + r, nextY - r)
+    && !isWallAt(nextX - r, nextY + r)
+    && !isWallAt(nextX + r, nextY + r);
+}
+
+// 축별 이동을 분리하면 벽에 닿았을 때 미끄러지듯 통로를 따라 움직일 수 있습니다.
+function moveEntity(entity, dx, dy) {
+  const nextX = entity.x + dx;
+  const nextY = entity.y + dy;
+  if (canMoveTo(entity, nextX, entity.y)) entity.x = nextX;
+  if (canMoveTo(entity, entity.x, nextY)) entity.y = nextY;
+}
 
 // 캔버스 해상도를 CSS 크기와 DPR에 맞춰 선명하게 유지합니다.
 function resizeCanvas() {
@@ -27,119 +70,152 @@ function resizeCanvas() {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 }
 
-// 월드 좌표를 탑뷰 카메라 좌표로 변환합니다.
-function project(x, z) {
-  const cos = Math.cos(uiState.angle);
-  const sin = Math.sin(uiState.angle);
+// 현재 플레이어 위치를 중심으로 월드 좌표를 화면 좌표로 변환합니다.
+function worldToScreen(x, y) {
   return {
-    x: canvas.clientWidth / 2 + (x * cos - z * sin) * uiState.zoom,
-    y: canvas.clientHeight / 2 + (x * sin + z * cos) * uiState.zoom * 0.72,
+    x: x - player.x + canvas.clientWidth / 2,
+    y: y - player.y + canvas.clientHeight / 2,
   };
 }
 
-// 3D 느낌을 위한 그림자 타원과 높이 오프셋을 함께 그립니다.
-function drawRaisedCircle(x, y, radius, color, label, pulse) {
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.28)';
-  ctx.beginPath();
-  ctx.ellipse(x, y + radius * 0.55, radius * 1.15, radius * 0.36, 0, 0, Math.PI * 2);
-  ctx.fill();
+// 화면 밖 배경까지 자연스럽게 보이도록 현재 카메라에 필요한 타일 범위만 그립니다.
+function drawMap() {
+  const startCol = Math.max(0, Math.floor((player.x - canvas.clientWidth / 2) / tileSize) - 1);
+  const endCol = Math.min(mapRows[0].length - 1, Math.ceil((player.x + canvas.clientWidth / 2) / tileSize) + 1);
+  const startRow = Math.max(0, Math.floor((player.y - canvas.clientHeight / 2) / tileSize) - 1);
+  const endRow = Math.min(mapRows.length - 1, Math.ceil((player.y + canvas.clientHeight / 2) / tileSize) + 1);
 
-  const bodyGradient = ctx.createRadialGradient(x - radius * 0.35, y - radius * 0.45, radius * 0.1, x, y, radius * 1.2);
-  bodyGradient.addColorStop(0, '#ffffff');
-  bodyGradient.addColorStop(0.18, color);
-  bodyGradient.addColorStop(1, '#243821');
-  ctx.fillStyle = bodyGradient;
-  ctx.beginPath();
-  ctx.arc(x, y - 8 - pulse, radius, 0, Math.PI * 2);
-  ctx.fill();
+  ctx.fillStyle = '#0a120f';
+  ctx.fillRect(0, 0, canvas.clientWidth, canvas.clientHeight);
 
-  ctx.fillStyle = 'rgba(255, 247, 216, 0.86)';
-  ctx.font = '700 11px Inter, system-ui, sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText(label, x, y + radius + 18);
+  for (let row = startRow; row <= endRow; row += 1) {
+    for (let col = startCol; col <= endCol; col += 1) {
+      const tile = mapRows[row][col];
+      const point = worldToScreen(col * tileSize, row * tileSize);
+      drawTile(tile, point.x, point.y, row, col);
+    }
+  }
 }
 
-// 공룡은 꼬리와 머리 방향을 추가해 무료 모델 적용 전에도 역할을 알아볼 수 있게 합니다.
-function drawDinosaur(entity, time) {
-  const point = project(entity.x, entity.z);
-  const pulse = Math.sin(time / 420 + entity.x) * 2;
-  drawRaisedCircle(point.x, point.y, entity.radius, entity.color, entity.label, pulse);
+// 타일 종류별 색과 장식은 기존 녹색/모래색 테마를 유지하며 실제 제작된 맵처럼 보이게 합니다.
+function drawTile(tile, x, y, row, col) {
+  const noise = ((row * 17 + col * 31) % 9) / 100;
+  ctx.fillStyle = tile === '#' ? '#263323' : tile === 'r' ? '#514a37' : '#243d2b';
+  ctx.fillRect(x, y, tileSize + 1, tileSize + 1);
 
-  ctx.strokeStyle = '#5f8b43';
-  ctx.lineWidth = 7;
-  ctx.lineCap = 'round';
-  ctx.beginPath();
-  ctx.moveTo(point.x + entity.radius * 0.45, point.y - 4);
-  ctx.lineTo(point.x + entity.radius * 1.15, point.y + 12);
-  ctx.stroke();
+  if (tile !== '#') {
+    ctx.fillStyle = `rgba(141, 255, 186, ${0.035 + noise})`;
+    ctx.fillRect(x + 8, y + 8, tileSize - 16, tileSize - 16);
+  }
 
-  ctx.fillStyle = '#f4d06f';
+  if (tile === 'g') {
+    ctx.fillStyle = 'rgba(149, 242, 182, 0.34)';
+    ctx.beginPath();
+    ctx.ellipse(x + 36, y + 42, 24, 10, -0.4, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  if (tile === 'r' || tile === '#') {
+    ctx.fillStyle = tile === '#' ? '#536146' : '#7d6f56';
+    ctx.beginPath();
+    ctx.ellipse(x + 35, y + 38, tile === '#' ? 30 : 21, tile === '#' ? 24 : 14, 0.35, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+// 생명체 공통 그림자는 탑뷰에서도 높이감이 보이도록 본체 아래에 깔립니다.
+function drawShadow(point, radius) {
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
   ctx.beginPath();
-  ctx.arc(point.x - entity.radius * 0.45, point.y - entity.radius * 0.65, 5, 0, Math.PI * 2);
+  ctx.ellipse(point.x, point.y + radius * 0.62, radius * 1.2, radius * 0.38, 0, 0, Math.PI * 2);
   ctx.fill();
 }
 
-// 플레이어는 밝은 실루엣과 방향 마커로 전투 중심을 빠르게 파악하게 합니다.
-function drawPlayer(entity, time) {
-  const point = project(entity.x, entity.z);
-  const pulse = Math.sin(time / 260) * 3;
-  drawRaisedCircle(point.x, point.y, entity.radius, entity.color, entity.label, pulse);
-
+// 플레이어는 설명 텍스트 없이 밝은 실루엣과 조준 방향만으로 식별되게 합니다.
+function drawPlayer() {
+  const point = worldToScreen(player.x, player.y);
+  drawShadow(point, player.radius);
+  ctx.fillStyle = '#8dffba';
+  ctx.beginPath();
+  ctx.arc(point.x, point.y, player.radius, 0, Math.PI * 2);
+  ctx.fill();
   ctx.fillStyle = '#eafff7';
   ctx.beginPath();
-  ctx.moveTo(point.x, point.y - entity.radius - 20);
-  ctx.lineTo(point.x - 9, point.y - entity.radius - 2);
-  ctx.lineTo(point.x + 9, point.y - entity.radius - 2);
+  ctx.moveTo(point.x + Math.cos(player.facing) * 30, point.y + Math.sin(player.facing) * 30);
+  ctx.lineTo(point.x + Math.cos(player.facing + 2.45) * 13, point.y + Math.sin(player.facing + 2.45) * 13);
+  ctx.lineTo(point.x + Math.cos(player.facing - 2.45) * 13, point.y + Math.sin(player.facing - 2.45) * 13);
   ctx.closePath();
   ctx.fill();
 }
 
-// 메인 렌더 루프는 지형, 엄폐물, 헌팅 링, 엔티티를 순서대로 그립니다.
-function render(time = 0) {
-  ctx.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight);
-
-  const terrainGradient = ctx.createRadialGradient(canvas.clientWidth / 2, canvas.clientHeight / 2, 20, canvas.clientWidth / 2, canvas.clientHeight / 2, canvas.clientWidth * 0.65);
-  terrainGradient.addColorStop(0, '#42633f');
-  terrainGradient.addColorStop(1, '#132019');
-  ctx.fillStyle = terrainGradient;
-  ctx.fillRect(0, 0, canvas.clientWidth, canvas.clientHeight);
-
-  const ring = project(0, 0);
-  ctx.strokeStyle = 'rgba(244, 208, 111, 0.72)';
+// 랩터는 꼬리, 몸통, 머리만으로 공룡 실루엣을 만들고 플레이어를 향해 움직입니다.
+function drawRaptor(raptor, time) {
+  const point = worldToScreen(raptor.x, raptor.y);
+  const angle = Math.atan2(player.y - raptor.y, player.x - raptor.x);
+  const bob = Math.sin(time / 180 + raptor.phase) * 2;
+  drawShadow(point, raptor.radius);
+  ctx.strokeStyle = '#557340';
   ctx.lineWidth = 8;
+  ctx.lineCap = 'round';
   ctx.beginPath();
-  ctx.ellipse(ring.x, ring.y, 116 * uiState.zoom, 84 * uiState.zoom, 0, 0, Math.PI * 2);
+  ctx.moveTo(point.x - Math.cos(angle) * 8, point.y - Math.sin(angle) * 8 + bob);
+  ctx.lineTo(point.x - Math.cos(angle) * 36, point.y - Math.sin(angle) * 36 + bob);
   ctx.stroke();
+  ctx.fillStyle = '#9fbe66';
+  ctx.beginPath();
+  ctx.ellipse(point.x, point.y + bob, raptor.radius * 1.1, raptor.radius * 0.72, angle, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#d8b66c';
+  ctx.beginPath();
+  ctx.arc(point.x + Math.cos(angle) * 25, point.y + Math.sin(angle) * 25 + bob, 9, 0, Math.PI * 2);
+  ctx.fill();
+}
 
-  rocks.forEach((rock) => {
-    const point = project(rock.x, rock.z);
-    ctx.fillStyle = rock.size % 2 ? '#6f765d' : '#7d6f56';
-    ctx.beginPath();
-    ctx.ellipse(point.x, point.y, rock.size * uiState.zoom, rock.size * 0.65 * uiState.zoom, 0.4, 0, Math.PI * 2);
-    ctx.fill();
+// 키보드 입력으로 플레이어를 이동시키고 포인터가 있으면 바라보는 방향을 갱신합니다.
+function updatePlayer(delta) {
+  const xAxis = (keys.has('KeyD') || keys.has('ArrowRight') ? 1 : 0) - (keys.has('KeyA') || keys.has('ArrowLeft') ? 1 : 0);
+  const yAxis = (keys.has('KeyS') || keys.has('ArrowDown') ? 1 : 0) - (keys.has('KeyW') || keys.has('ArrowUp') ? 1 : 0);
+  const length = Math.hypot(xAxis, yAxis) || 1;
+  moveEntity(player, (xAxis / length) * player.speed * delta, (yAxis / length) * player.speed * delta);
+  if (pointer.active) player.facing = Math.atan2(pointer.y - canvas.clientHeight / 2, pointer.x - canvas.clientWidth / 2);
+}
+
+// 랩터는 시야 안에 들어온 플레이어를 추격하고 너무 가까우면 원형으로 압박합니다.
+function updateRaptors(delta, time) {
+  raptors.forEach((raptor) => {
+    const dx = player.x - raptor.x;
+    const dy = player.y - raptor.y;
+    const distance = Math.hypot(dx, dy) || 1;
+    const stalk = distance < 520 ? 1 : 0.35;
+    const orbit = distance < 96 ? Math.sin(time / 340 + raptor.phase) * 0.9 : 0;
+    const nx = dx / distance;
+    const ny = dy / distance;
+    moveEntity(raptor, (nx - ny * orbit) * raptor.speed * stalk * delta, (ny + nx * orbit) * raptor.speed * stalk * delta);
   });
+}
 
-  entities.forEach((entity) => (entity.kind === 'player' ? drawPlayer(entity, time) : drawDinosaur(entity, time)));
+// 실제 게임 루프는 맵, 랩터, 플레이어 순서로 그려 가려짐을 단순하게 정리합니다.
+let lastTime = performance.now();
+function render(time = performance.now()) {
+  const delta = Math.min((time - lastTime) / 1000, 0.033);
+  lastTime = time;
+  updatePlayer(delta);
+  updateRaptors(delta, time);
+  drawMap();
+  raptors.forEach((raptor) => drawRaptor(raptor, time));
+  drawPlayer();
   requestAnimationFrame(render);
 }
 
-// 마우스 드래그와 휠 입력은 웹빌더 미리보기에서도 별도 권한 없이 동작합니다.
-canvas.addEventListener('pointerdown', (event) => {
-  uiState.dragging = true;
-  uiState.lastX = event.clientX;
-  canvas.setPointerCapture(event.pointerId);
-});
+// 브라우저 입력 이벤트는 게임 화면 밖 UI가 없다는 전제에 맞춰 전역으로 받습니다.
+window.addEventListener('keydown', (event) => keys.add(event.code));
+window.addEventListener('keyup', (event) => keys.delete(event.code));
 canvas.addEventListener('pointermove', (event) => {
-  if (!uiState.dragging) return;
-  uiState.angle += (event.clientX - uiState.lastX) * 0.006;
-  uiState.lastX = event.clientX;
+  pointer.active = true;
+  pointer.x = event.clientX;
+  pointer.y = event.clientY;
 });
-canvas.addEventListener('pointerup', () => { uiState.dragging = false; });
-canvas.addEventListener('wheel', (event) => {
-  event.preventDefault();
-  uiState.zoom = Math.max(0.65, Math.min(1.55, uiState.zoom - event.deltaY * 0.001));
-}, { passive: false });
-
+canvas.addEventListener('pointerleave', () => { pointer.active = false; });
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 render();

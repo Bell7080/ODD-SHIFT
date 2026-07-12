@@ -6,23 +6,9 @@
     <title>Project Plateau</title>
   </head>
   <body>
-    <main class="app-shell">
-      <section class="hero-panel">
-        <div class="hero-copy">
-          <p class="eyebrow">Project Plateau · Top-view 3D Builder Ready</p>
-          <h1>야성적인 전투를 검증하는 탑뷰 3D 환경</h1>
-          <p class="hero-description">기획서의 진화형 AI 게임 구조를 기반으로, 웹빌더와 GitHub Actions 정적 배포에 맞춘 무의존성 프로토타입을 구성했습니다.</p>
-          <div class="control-hint">드래그: 시점 회전 · 휠: 줌 · 향후 WASD/마우스 전투 입력 확장</div>
-        </div>
-        <div class="scene-card" aria-label="탑뷰 3D 전투 환경 미리보기">
-          <canvas data-scene-canvas></canvas>
-        </div>
-      </section>
-      <section class="pillar-grid" aria-label="기획 핵심 요소">
-        <article class="pillar-card"><span class="pillar-icon">🧠</span><h2>진화형 AI</h2><p>생존 압력에 따라 공룡 무리의 성향이 변화하는 구조를 목표로 합니다.</p></article>
-        <article class="pillar-card"><span class="pillar-icon">🎮</span><h2>탑뷰 전투</h2><p>마우스/키보드 모두 읽기 쉬운 3D 감각의 탑뷰 프로토타입 환경입니다.</p></article>
-        <article class="pillar-card"><span class="pillar-icon">⚡</span><h2>야성의 피드백</h2><p>추격, 회피, 지형 엄폐를 빠르게 확인할 수 있도록 시각 단서를 단순화했습니다.</p></article>
-      </section>
+    <!-- 실제 게임 화면만 남겨 전체화면 플레이 감각을 우선 검증합니다. -->
+    <main class="game-shell" aria-label="Project Plateau playable map">
+      <canvas data-scene-canvas aria-label="플레이어와 랩터가 배치된 사전 제작 맵"></canvas>
     </main>
     <script type="module" src="./src/main.js"></script>
   </body>
