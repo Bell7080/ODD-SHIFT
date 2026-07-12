@@ -1,0 +1,20 @@
+declare module 'https://esm.sh/three@0.180.0' {
+  export const Scene: any;
+  export const Color: any;
+  export const FogExp2: any;
+  export const PerspectiveCamera: any;
+  export const WebGLRenderer: any;
+  export const PCFSoftShadowMap: any;
+  export const HemisphereLight: any;
+  export const DirectionalLight: any;
+  export const Vector2: any;
+  export const Group: any;
+  export const Mesh: any;
+  export const BoxGeometry: any;
+  export const CapsuleGeometry: any;
+  export const ConeGeometry: any;
+  export const SphereGeometry: any;
+  export const DodecahedronGeometry: any;
+  export const CylinderGeometry: any;
+  export const MeshStandardMaterial: any;
+}
