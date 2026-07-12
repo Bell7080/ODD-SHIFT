@@ -1,0 +1,156 @@
+/* 전역 테마: 거친 고원과 네온 생존 UI가 섞인 색감을 기본 톤으로 사용합니다. */
+:root {
+  color: #eef8df;
+  background: #08100d;
+  font-family: Inter, Pretendard, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+/* 브라우저 기본 여백을 제거해 웹빌더 iframe과 정적 배포에서 같은 화면비를 유지합니다. */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background: radial-gradient(circle at top left, rgba(91, 135, 80, 0.32), transparent 34%), #08100d;
+}
+
+/* 전체 앱 셸은 단일 페이지 프로토타입으로 바로 확인 가능하게 중앙 정렬합니다. */
+.app-shell {
+  width: min(1180px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 40px 0;
+}
+
+.hero-panel {
+  display: grid;
+  grid-template-columns: 0.85fr 1.15fr;
+  gap: 24px;
+  align-items: stretch;
+}
+
+.hero-copy,
+.scene-card,
+.pillar-card {
+  border: 1px solid rgba(196, 255, 176, 0.16);
+  background: linear-gradient(145deg, rgba(22, 43, 31, 0.92), rgba(9, 18, 15, 0.9));
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.35);
+  border-radius: 28px;
+}
+
+.hero-copy {
+  padding: 36px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.eyebrow {
+  margin: 0 0 14px;
+  color: #95f2b6;
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+h1 {
+  margin: 0;
+  color: #fff7d8;
+  font-size: clamp(2.4rem, 5vw, 5.8rem);
+  line-height: 0.94;
+  letter-spacing: -0.07em;
+}
+
+.hero-description {
+  color: #c8d7c0;
+  font-size: 1.05rem;
+  line-height: 1.75;
+  margin: 24px 0;
+}
+
+.control-hint {
+  width: fit-content;
+  color: #12311f;
+  background: linear-gradient(90deg, #8dffba, #f4d06f);
+  border-radius: 999px;
+  padding: 10px 14px;
+  font-size: 0.88rem;
+  font-weight: 800;
+}
+
+.scene-card {
+  height: min(68vh, 640px);
+  min-height: 420px;
+  overflow: hidden;
+  position: relative;
+}
+
+.scene-card::after {
+  content: '';
+  position: absolute;
+  inset: 16px;
+  pointer-events: none;
+  border: 1px solid rgba(244, 208, 111, 0.22);
+  border-radius: 22px;
+}
+
+.pillar-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+  margin-top: 18px;
+}
+
+.pillar-card {
+  padding: 24px;
+}
+
+.pillar-icon {
+  width: 28px;
+  height: 28px;
+  color: #8dffba;
+}
+
+.pillar-card h2 {
+  margin: 14px 0 8px;
+  color: #fff7d8;
+}
+
+.pillar-card p {
+  margin: 0;
+  color: #b7c9af;
+  line-height: 1.65;
+}
+
+/* 좁은 웹빌더 프리뷰에서도 씬과 설명을 세로로 안정적으로 배치합니다. */
+@media (max-width: 860px) {
+  .hero-panel,
+  .pillar-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .scene-card {
+    min-height: 360px;
+  }
+}
+
+/* Canvas는 카드 전체를 채워 실제 게임 뷰포트처럼 보이게 합니다. */
+[data-scene-canvas] {
+  width: 100%;
+  height: 100%;
+  display: block;
+  cursor: grab;
+}
+
+[data-scene-canvas]:active {
+  cursor: grabbing;
+}
+
+.pillar-icon {
+  display: inline-grid;
+  place-items: center;
+  font-size: 1.6rem;
+}
