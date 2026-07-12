@@ -8,6 +8,9 @@ declare module 'https://esm.sh/three@0.180.0' {
   export const HemisphereLight: any;
   export const DirectionalLight: any;
   export const Vector2: any;
+  export const Vector3: any;
+  export const Plane: any;
+  export const Raycaster: any;
   export const Group: any;
   export const Mesh: any;
   export const BoxGeometry: any;
@@ -16,5 +19,6 @@ declare module 'https://esm.sh/three@0.180.0' {
   export const SphereGeometry: any;
   export const DodecahedronGeometry: any;
   export const CylinderGeometry: any;
+  export const TorusGeometry: any;
   export const MeshStandardMaterial: any;
 }

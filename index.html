@@ -10,6 +10,17 @@
     <!-- 실제 게임 화면만 남겨 전체화면 플레이 감각을 우선 검증합니다. -->
     <main class="game-shell" aria-label="Project Plateau playable map">
       <canvas data-scene-canvas aria-label="플레이어와 랩터가 배치된 사전 제작 맵"></canvas>
+      <!-- 클릭한 자연물/적 옆에 뜨는 작은 액션 메뉴입니다. -->
+      <div class="action-menu" data-action-menu hidden></div>
+      <!-- 전투/채집 액션은 좌측 하단 패널에서 프로토타입 흐름만 먼저 검증합니다. -->
+      <section class="combat-panel" data-combat-panel hidden aria-label="전투 액션창">
+        <p data-combat-text>적의 움직임을 읽고 행동을 선택하세요.</p>
+        <div class="combat-actions">
+          <button type="button" data-combat-action="parry">패링</button>
+          <button type="button" data-combat-action="dodge">회피</button>
+          <button type="button" data-combat-action="counter">맞대응</button>
+        </div>
+      </section>
     </main>
     <script type="module" src="./build/main.js"></script>
   </body>
