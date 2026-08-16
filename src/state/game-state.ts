@@ -33,6 +33,9 @@ export class GameState {
     starter.form = '인형';
     starter.observationNote =
       '실로 기운 자국이 가득한 낡은 고양이 인형. 위협적이지 않으며 구금·케어 튜토리얼을 담당한다.';
+    // 실제로 제작된 PuppetForge 에셋이 있으니 이 개체에 연결한다. 에셋이 지워지거나
+    // 경로가 바뀌어도 puppet-loader가 알아서 플레이스홀더로 대체한다.
+    starter.puppetAssetUrl = 'assets/illustrations/hazard-entities/entity_001.zip';
     this.roster.push(starter);
 
     this.employees.push(

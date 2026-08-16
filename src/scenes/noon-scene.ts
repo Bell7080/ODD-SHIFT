@@ -23,7 +23,12 @@ export class NoonScene extends Phaser.Scene {
       color: '#c7b8ee',
     });
 
-    let y = 110;
+    makeButton(this, 24, 90, '구금 방 보기 →', () => this.scene.start('containment-room'), {
+      fontSize: '13px',
+      padding: { x: 10, y: 6 },
+    });
+
+    let y = 130;
     gameState.roster.forEach((entity) => {
       this.drawEntityRow(entity, y);
       y += 30;

@@ -141,3 +141,26 @@
 - `dist/`를 `/ODD-SHIFT/` 하위 경로로 로컬에서 직접 서빙해 GitHub Pages 배포 환경을
   재현한 뒤 Playwright로 아침 화면과 Room 테스트 씬 양쪽이 폰트·배경·엔티티까지 전부
   정상 로드되는 것을 확인했다.
+
+## v0.1.7 — 2026-08-16
+
+**테스트용이던 방 씬을 실제 "구금 방" 기능으로 승격하고, 화면 확대·고DPI 환경에서
+글자가 뭉개지던 문제를 고쳤다.**
+
+- `src/scenes/room-test-scene.ts`(디버그 전용, `entity_001`을 하드코딩)를
+  `src/scenes/containment-room-scene.ts`로 바꿨다. 이제 하드코딩된 테스트 개체가 아니라
+  `GameState`의 `facilities[0]`과 그 `occupantIds`에 속한 `roster` 개체를 그대로 읽어
+  보여준다 — 시설 이름·수용 인원(`1구역 수용실 · 1/4`)이 실제 상태와 항상 일치한다.
+  `GameState.seedStarterState()`에서 튜토리얼용 헝겊 고양이 인형에
+  `entity_001.zip`을 정식으로 연결해, 테스트에서만 쓰던 자산이 실제 로스터 개체의
+  진짜 에셋이 됐다.
+- 점심(Noon) 씬에 "구금 방 보기 →" 버튼을 추가해 정식 진행 흐름 안에서 들어갈 수 있게
+  했고, 구금 방의 "나가기 →" 버튼은 다시 점심으로 돌아간다. `?scene=containment-room`
+  디버그 진입 쿼리도 이름을 맞춰 유지했다.
+- **글자 뭉개짐 수정**: Phaser의 Text 오브젝트는 기본적으로 1x 해상도로 래스터화한
+  비트맵을 그대로 그린다. 우리 게임은 1280×720을 FIT 모드로 화면 크기에 맞게 CSS로
+  확대하고, 실제 모니터 대부분은 `devicePixelRatio`가 1보다 크기 때문에 그 비트맵이
+  물리 해상도보다 작은 채로 늘어나 흐리게 보였다. `src/ui/text.ts`의 `makeText`가
+  모든 텍스트에 `resolution: Math.max(2, devicePixelRatio)`를 기본으로 주도록 고쳤다 —
+  스크린샷 비교로 1x 뷰포트에서도, 더 큰 뷰포트 + DPR 2 환경에서도 또렷하게 나오는
+  것을 확인했다.

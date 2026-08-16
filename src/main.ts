@@ -7,7 +7,7 @@ import { EveningScene } from './scenes/evening-scene';
 import { GuestScene } from './scenes/guest-scene';
 import { NightScene } from './scenes/night-scene';
 import { CombatScene } from './scenes/combat-scene';
-import { RoomTestScene } from './scenes/room-test-scene';
+import { ContainmentRoomScene } from './scenes/containment-room-scene';
 
 // Phaser는 document.fonts가 준비됐는지 스스로 기다려주지 않으므로, 씬이 텍스트를 그리기
 // 전에 폰트 매니저가 폰트 3종을 전부 불러올 때까지 게임 생성을 미룬다. loadFonts 자체는
@@ -33,6 +33,15 @@ new Phaser.Game({
     height: 720,
   },
   // 아침 → 점심 → 저녁 → 손님맞이 → 밤 → 전투 → 다음날 아침 순서로 씬을 등록한다.
-  // room-test는 방·위험체 렌더링을 확인하는 테스트용 씬으로, 기본 진행 흐름에는 없다.
-  scene: [BootScene, MorningScene, NoonScene, EveningScene, GuestScene, NightScene, CombatScene, RoomTestScene],
+  // containment-room(구금 방)은 점심 페이즈에서 들어가는 별도 화면이라 이 순서 밖에 있다.
+  scene: [
+    BootScene,
+    MorningScene,
+    NoonScene,
+    EveningScene,
+    GuestScene,
+    NightScene,
+    CombatScene,
+    ContainmentRoomScene,
+  ],
 });

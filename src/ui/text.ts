@@ -3,6 +3,14 @@
 import type Phaser from 'phaser';
 import { FONT, type FontRole } from './fonts';
 
+// Phaser Text는 기본적으로 캔버스 논리 해상도(1x)로 글자를 래스터화한 뒤 그 비트맵을
+// 그대로 그린다. 우리 게임은 1280×720 고정 해상도를 FIT 모드로 화면에 맞춰 CSS로
+// 확대하고, 실제 모니터도 대부분 devicePixelRatio > 1이라 그 비트맵이 물리 픽셀보다
+// 작은 채로 늘어나 글자가 뭉개져 보인다. Text 하나마다 resolution을 높여 더 촘촘한
+// 비트맵으로 그리게 하면 확대돼도 또렷하다 — 2를 최소값으로 두고 고DPI 화면은 그
+// devicePixelRatio를 그대로 따른다.
+const TEXT_RESOLUTION = Math.max(2, typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1);
+
 export function makeText(
   scene: Phaser.Scene,
   x: number,
@@ -11,7 +19,7 @@ export function makeText(
   role: FontRole,
   style: Phaser.Types.GameObjects.Text.TextStyle = {},
 ): Phaser.GameObjects.Text {
-  return scene.add.text(x, y, value, { fontFamily: FONT[role], ...style });
+  return scene.add.text(x, y, value, { fontFamily: FONT[role], resolution: TEXT_RESOLUTION, ...style });
 }
 
 /** 클릭 가능한 버튼 텍스트. accent 서체 + 손 커서 + pointerup 핸들러를 한 번에 묶는다. */

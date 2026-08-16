@@ -1,8 +1,9 @@
 import Phaser from 'phaser';
 
-// 실제 진행 흐름은 항상 아침부터 시작한다. ?scene=room-test 같은 쿼리로만 예외적으로
-// 테스트용 씬에 바로 들어갈 수 있게 해, 평소 플레이 진입점은 건드리지 않는다.
-const KNOWN_DEBUG_SCENES = new Set(['room-test']);
+// 실제 진행 흐름은 항상 아침부터 시작한다. ?scene=containment-room 같은 쿼리로만
+// 예외적으로 하루 사이클 밖 씬에 바로 들어갈 수 있게 해, 평소 플레이 진입점은
+// 건드리지 않는다.
+const KNOWN_DEBUG_SCENES = new Set(['containment-room']);
 
 export class BootScene extends Phaser.Scene {
   constructor() {
