@@ -32,3 +32,14 @@
   에서 에셋 유무에 따라 실제 퍼펫 또는 플레이스홀더 실루엣을 그리도록 분기했다.
 - Playwright로 아침→점심→저녁→손님맞이→밤→전투 전체 흐름을 수동 스모크 테스트해
   런타임 오류 없음을 확인했다.
+
+## v0.1.1 — 2026-08-16
+
+**폰트·일러스트·오디오를 넣을 에셋 폴더 뼈대를 만들었다.**
+
+- `public/assets/fonts/`, `public/assets/illustrations/{characters,hazard-entities,backgrounds}/`,
+  `public/assets/audio/{bgm,sfx}/`를 만들고 각 폴더에 git이 빈 폴더를 추적하지 않는 문제를
+  피하려고 `.gitkeep`을 넣었다.
+- `public/assets/README.md`에 폴더 구조, Vite가 `/assets/...` 경로로 그대로 서빙한다는 점,
+  PuppetForge 캐릭터 zip은 이 폴더가 아니라 별도 경로를 쓴다는 점을 문서화했다.
+- `CLAUDE.md` 개발 규칙에 이 폴더를 참조하도록 연결했다.
