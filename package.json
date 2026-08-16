@@ -7,13 +7,15 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "assets:webp": "node scripts/convert-illustrations-to-webp.mjs"
   },
   "dependencies": {
     "phaser": "^3.90.0",
     "puppetforge": "git+https://github.com/Bell7080/WebGLE.git#main"
   },
   "devDependencies": {
+    "sharp": "^0.35.3",
     "typescript": "^5.9.2",
     "vite": "^7.1.3"
   }
