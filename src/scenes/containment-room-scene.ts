@@ -1,92 +1,135 @@
-// 메인 연구소 관리 보드. 각 방을 하나의 격자 타일로 보고, 위험체는 왼쪽에 배치하며
-// 오른쪽 직원 슬롯은 후속 직원 배치 시스템을 위해 비워 둔다.
+// 연구소 전체가 게임의 상시 메인 화면이다. 시간대별 업무는 연구소를 가리지 않는
+// 팝업으로 띄우고, 직원은 구금실을 제외한 방과 통로를 계속 순회한다.
 import Phaser from 'phaser';
 import { gameState } from '../state/game-state';
-import type { HazardEntity } from '../data/types';
-import { loadCreatureVisual } from '../systems/puppet-loader';
+import { drawHud } from '../ui/hud';
 import { makeButton, makeText } from '../ui/text';
 
-const RETURN_SCENE = 'noon';
-const TILE_WIDTH = 380;
-const TILE_HEIGHT = 242;
+interface LabRoom {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  code: string;
+  name: string;
+  containment?: boolean;
+}
+
+const ROOMS: LabRoom[] = [
+  { x: 34, y: 105, width: 340, height: 205, code: 'C-01', name: '제1 구금실', containment: true },
+  { x: 454, y: 105, width: 340, height: 205, code: 'R-01', name: '연구 작업실' },
+  { x: 874, y: 105, width: 372, height: 205, code: 'M-01', name: '정비실' },
+  { x: 34, y: 430, width: 340, height: 205, code: 'S-01', name: '직원 휴게실' },
+  { x: 454, y: 430, width: 340, height: 205, code: 'A-01', name: '자원 보관실' },
+  { x: 874, y: 430, width: 372, height: 205, code: 'O-01', name: '관제실' },
+];
 
 export class ContainmentRoomScene extends Phaser.Scene {
   constructor() {
     super('containment-room');
   }
 
-  async create(): Promise<void> {
-    this.cameras.main.setBackgroundColor('#07080d');
-    this.drawLabFrame();
-
-    const facility = gameState.facilities[0];
-    const occupants = facility
-      ? gameState.roster.filter((entity) => facility.occupantIds.includes(entity.id))
-      : [];
-
-    // 실제 구금 타일은 상태의 입주자와 연결하고, 나머지는 효과가 미확정인 계획 타일이다.
-    await this.drawContainmentTile(44, 128, occupants[0], facility?.name ?? '구금실');
-    this.drawPlannedTile(450, 128, 'COMBAT MODULE', '전투 강화실', '기능 설계 예정');
-    this.drawPlannedTile(856, 128, 'STAFF MODULE', '직원 휴게실', '기능 설계 예정');
-    this.drawPlannedTile(44, 396, 'RESOURCE MODULE', '자원 보조실', '기능 설계 예정');
-    this.drawPlannedTile(450, 396, 'EMPTY CELL', '미지정 구역', '시설 확장 슬롯');
-    this.drawPlannedTile(856, 396, 'EMPTY CELL', '미지정 구역', '시설 확장 슬롯');
+  create(): void {
+    this.cameras.main.setBackgroundColor('#06070c');
+    this.drawLaboratory();
+    this.drawEmployees();
+    drawHud(this, gameState);
+    this.drawPhasePopup();
   }
 
-  private drawLabFrame(): void {
-    makeText(this, 44, 34, 'ODD SHIFT  /  MAIN LABORATORY', 'accent', { fontSize: '13px', color: '#43d7cf' });
-    makeText(this, 44, 58, '구금 연구동 · 격자 관제도', 'heading', { fontSize: '24px', color: '#f2e9ff' });
-    makeText(this, 44, 94, '각 타일은 독립된 시설입니다. 위험체 좌측 / 담당 직원 우측', 'body', {
-      fontSize: '12px',
-      color: '#827792',
-    });
-    makeButton(this, 1130, 42, '나가기  →', () => this.scene.start(RETURN_SCENE), {
-      fontSize: '13px',
-      padding: { x: 12, y: 7 },
-    });
+  /** 방 사이의 빈 공간을 실제 이동 가능한 십자 통로와 중앙 허브로 연결한다. */
+  private drawLaboratory(): void {
+    makeText(this, 34, 54, 'ODD SHIFT  /  MAIN LABORATORY', 'accent', { fontSize: '13px', color: '#43d7cf' });
+    makeText(this, 34, 76, '구금 연구동 · 실시간 관제도', 'heading', { fontSize: '20px', color: '#f2e9ff' });
+    this.add.rectangle(0, 330, 1280, 80, 0x11131d, 1).setOrigin(0, 0).setStrokeStyle(1, 0x4e4061, 0.7);
+    this.add.rectangle(394, 92, 40, 560, 0x11131d, 1).setOrigin(0, 0);
+    this.add.rectangle(814, 92, 40, 560, 0x11131d, 1).setOrigin(0, 0);
+    this.add.rectangle(594, 330, 92, 80, 0x191525, 1).setOrigin(0, 0).setStrokeStyle(1, 0x43d7cf, 0.45);
+    ROOMS.forEach((room) => this.drawRoom(room));
+    makeText(this, 640, 359, 'CENTRAL HUB', 'accent', { fontSize: '9px', color: '#43d7cf' }).setOrigin(0.5);
   }
 
-  private async drawContainmentTile(x: number, y: number, entity: HazardEntity | undefined, roomName: string): Promise<void> {
-    this.add.rectangle(x, y, TILE_WIDTH, TILE_HEIGHT, 0x030408, 0.76)
-      .setOrigin(0, 0)
-      .setStrokeStyle(2, 0x43d7cf, 0.72);
-    this.add.rectangle(x, y, TILE_WIDTH, 34, 0x111521, 0.96).setOrigin(0, 0);
-    makeText(this, x + 14, y + 9, `C-01  ${roomName}`, 'accent', { fontSize: '11px', color: '#43d7cf' });
-    this.add.line(x + 246, y + 45, 0, 0, 0, 184, 0x64517c, 0.52).setOrigin(0, 0);
-
-    if (!entity) {
-      makeText(this, x + 123, y + 128, '구금 개체 없음', 'body', { fontSize: '14px', color: '#746c7e' }).setOrigin(0.5);
-    } else {
-      const visual = await loadCreatureVisual(this, entity, x + 72, y + 182);
-      visual.setScale(0.13);
-      visual.play('idle');
-      makeText(this, x + 16, y + 46, entity.name, 'heading', {
-        fontSize: '13px', color: '#f2e9ff', wordWrap: { width: 215 },
+  /** 방의 용도를 색과 라벨로 구분하되 기존 보라·청록 관제 테마를 유지한다. */
+  private drawRoom(room: LabRoom): void {
+    const accent = room.containment ? 0x9c72d7 : 0x43d7cf;
+    this.add.rectangle(room.x, room.y, room.width, room.height, 0x090a11, 0.95)
+      .setOrigin(0, 0).setStrokeStyle(2, accent, 0.65);
+    this.add.rectangle(room.x, room.y, room.width, 32, 0x141522, 1).setOrigin(0, 0);
+    makeText(this, room.x + 12, room.y + 9, `${room.code}  ${room.name}`, 'accent', {
+      fontSize: '10px', color: room.containment ? '#b999e5' : '#43d7cf',
+    });
+    if (room.containment) {
+      const entity = gameState.roster[0];
+      makeText(this, room.x + 18, room.y + 66, entity?.name ?? '구금 개체 없음', 'heading', { fontSize: '15px', color: '#e8dcff' });
+      makeText(this, room.x + 18, room.y + 100, entity ? `위험 ${entity.threatTier} · ${entity.attribute}\n몽환도 ${entity.combat.mentality}%` : '격리 상태', 'body', {
+        fontSize: '11px', color: '#998cab', lineSpacing: 7,
       });
-      const dreamPercent = Phaser.Math.Clamp(Math.round(entity.combat.mentality), 0, 100);
-      makeText(this, x + 126, y + 92,
-        `위험도  ${'◆'.repeat(entity.threatTier)}\n악몽유형  ${entity.attribute}\nLEVEL  ${entity.level}\n몽환도  ${dreamPercent}%`,
-        'body', { fontSize: '11px', color: '#bdb0d2', lineSpacing: 6 });
-      this.add.rectangle(x + 126, y + 192, 100, 5, 0x211b2b, 1).setOrigin(0, 0);
-      this.add.rectangle(x + 126, y + 192, dreamPercent, 5, 0x9c72d7, 1).setOrigin(0, 0);
+      this.add.rectangle(room.x + 225, room.y + 58, 88, 112, 0x170f20, 0.9).setOrigin(0, 0).setStrokeStyle(1, 0x8d68c7, 0.7);
+      makeText(this, room.x + 269, room.y + 110, '격리', 'accent', { fontSize: '11px', color: '#b999e5' }).setOrigin(0.5);
+    } else {
+      makeText(this, room.x + room.width / 2, room.y + 104, '운영 중', 'body', { fontSize: '12px', color: '#6f8490' }).setOrigin(0.5);
     }
-
-    makeText(this, x + 263, y + 54, 'STAFF', 'accent', { fontSize: '10px', color: '#8d68c7' });
-    this.add.rectangle(x + 263, y + 78, 98, 116, 0x0c0a12, 0.8)
-      .setOrigin(0, 0)
-      .setStrokeStyle(1, 0x604977, 0.65);
-    makeText(this, x + 312, y + 126, '+', 'heading', { fontSize: '26px', color: '#655678' }).setOrigin(0.5);
-    makeText(this, x + 312, y + 161, '직원 배치 예정', 'body', { fontSize: '9px', color: '#665e71' }).setOrigin(0.5);
   }
 
-  private drawPlannedTile(x: number, y: number, code: string, name: string, status: string): void {
-    this.add.rectangle(x, y, TILE_WIDTH, TILE_HEIGHT, 0x09080e, 0.62)
-      .setOrigin(0, 0)
-      .setStrokeStyle(1, 0x51425f, 0.5);
-    // 잠금 타일은 실제 효과가 구현된 것으로 오해하지 않도록 점선 대신 명시적 상태를 쓴다.
-    makeText(this, x + 16, y + 14, code, 'accent', { fontSize: '10px', color: '#67587a' });
-    makeText(this, x + TILE_WIDTH / 2, y + 102, name, 'heading', { fontSize: '17px', color: '#82758f' }).setOrigin(0.5);
-    makeText(this, x + TILE_WIDTH / 2, y + 136, status, 'body', { fontSize: '11px', color: '#5f5867' }).setOrigin(0.5);
-    makeText(this, x + TILE_WIDTH / 2, y + 174, '＋', 'heading', { fontSize: '20px', color: '#493f53' }).setOrigin(0.5);
+  /** 직원마다 서로 다른 비구금 지점을 왕복시켜 생활감 있는 순찰 연출을 만든다. */
+  private drawEmployees(): void {
+    const routes = [
+      [{ x: 610, y: 370 }, { x: 620, y: 190 }, { x: 835, y: 370 }, { x: 1050, y: 520 }],
+      [{ x: 1020, y: 370 }, { x: 835, y: 370 }, { x: 620, y: 520 }, { x: 210, y: 370 }],
+    ];
+    gameState.employees.forEach((employee, index) => {
+      const route = routes[index % routes.length];
+      const marker = this.add.circle(route[0].x, route[0].y, 9, index % 2 ? 0x9c72d7 : 0x43d7cf, 1)
+        .setStrokeStyle(2, 0xe8dcff, 0.8);
+      const label = makeText(this, route[0].x, route[0].y + 14, employee.name, 'body', { fontSize: '9px', color: '#c8bddc' }).setOrigin(0.5, 0);
+      let destination = 1;
+      const move = (): void => {
+        const point = route[destination];
+        this.tweens.add({ targets: [marker, label], x: point.x, y: (_target: unknown, key: string) => point.y + (key === 'y' && _target === label ? 14 : 0), duration: 2800 + index * 500, onComplete: () => {
+          destination = (destination + 1) % route.length;
+          move();
+        } });
+      };
+      move();
+    });
+  }
+
+  /** 현재 시간대의 할 일만 모달에 올려 연구소 맥락을 잃지 않고 하루를 진행한다. */
+  private drawPhasePopup(): void {
+    this.add.rectangle(640, 360, 600, 350, 0x05050a, 0.96).setStrokeStyle(2, 0x8d68c7, 0.9);
+    const titles = { morning: '아침 업무 보고', noon: '점심 자동 생산', evening: '저녁 운영', guests: '손님 접수 준비', night: '야간 진입', combat: '전투 중' };
+    makeText(this, 640, 225, titles[gameState.phase], 'heading', { fontSize: '23px', color: '#f2e9ff' }).setOrigin(0.5);
+    if (gameState.phase === 'morning') this.drawMorningPopup();
+    if (gameState.phase === 'noon') this.drawNoonPopup();
+    if (gameState.phase === 'evening') this.drawEveningPopup();
+  }
+
+  private drawMorningPopup(): void {
+    makeText(this, 390, 275, `직원 ${gameState.employees.length}명 · 구금 개체 ${gameState.roster.length}체\n시설 안정도 ${gameState.facilities[0]?.stability ?? 0}%`, 'body', {
+      fontSize: '14px', color: '#b7a6dd', lineSpacing: 10,
+    });
+    makeButton(this, 780, 470, '점심 업무 시작  →', () => { gameState.goToNoon(); this.scene.restart(); }, { fontSize: '15px', padding: { x: 14, y: 8 } });
+  }
+
+  private drawNoonPopup(): void {
+    const produced = gameState.produceDailyResources();
+    const summary = produced
+      ? Object.entries(produced).map(([type, amount]) => `${type}  +${amount}`).join('\n')
+      : '오늘의 생산은 이미 완료되었습니다.';
+    makeText(this, 390, 275, `구금 개체의 작업 적성에 따라 일일 생산했습니다.\n\n${summary}`, 'body', {
+      fontSize: '14px', color: '#b7a6dd', lineSpacing: 8,
+    });
+    makeButton(this, 780, 470, '저녁 운영으로  →', () => { gameState.goToEvening(); this.scene.restart(); }, { fontSize: '15px', padding: { x: 14, y: 8 } });
+  }
+
+  private drawEveningPopup(): void {
+    const facility = gameState.facilities[0];
+    makeText(this, 390, 275, '오늘 생산된 자원으로 연구동 운영을 마무리하십시오.', 'body', { fontSize: '14px', color: '#b7a6dd' });
+    makeButton(this, 390, 330, '정비 20 · 안정도 강화', () => {
+      if (facility && gameState.spendResource('정비자원', 20)) facility.stability = Math.min(100, facility.stability + 10);
+      else gameState.addLog('정비자원이 부족합니다.');
+      this.scene.restart();
+    }, { fontSize: '13px', backgroundColor: '#7fd4a2', padding: { x: 10, y: 6 } });
+    makeButton(this, 780, 470, '손님 맞이하기  →', () => { gameState.goToGuestSelection(); this.scene.start('guests'); }, { fontSize: '15px', padding: { x: 14, y: 8 } });
   }
 }

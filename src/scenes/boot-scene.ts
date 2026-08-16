@@ -1,8 +1,6 @@
 import Phaser from 'phaser';
 
-// 실제 진행 흐름은 항상 아침부터 시작한다. ?scene=containment-room 같은 쿼리로만
-// 예외적으로 하루 사이클 밖 씬에 바로 들어갈 수 있게 해, 평소 플레이 진입점은
-// 건드리지 않는다.
+// 연구소 관제도가 실제 진행의 상시 메인 화면이며, 디버그 쿼리도 허용된 씬만 연다.
 const KNOWN_DEBUG_SCENES = new Set(['containment-room']);
 
 export class BootScene extends Phaser.Scene {
@@ -12,7 +10,7 @@ export class BootScene extends Phaser.Scene {
 
   create(): void {
     const requested = new URLSearchParams(window.location.search).get('scene');
-    const target = requested && KNOWN_DEBUG_SCENES.has(requested) ? requested : 'morning';
+    const target = requested && KNOWN_DEBUG_SCENES.has(requested) ? requested : 'containment-room';
     this.scene.start(target);
   }
 }
