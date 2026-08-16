@@ -7,8 +7,10 @@ import { loadCreatureVisual, type CreatureVisual } from '../systems/puppet-loade
 import { makeButton, makeText } from '../ui/text';
 
 const BACKGROUND_KEY = 'room-test-background';
-const BACKGROUND_URL = '/assets/illustrations/backgrounds/background_001.webp';
-const ENTITY_ZIP_URL = '/assets/illustrations/hazard-entities/entity_001.zip';
+// 맨 앞에 슬래시를 붙이지 않는다 — GitHub Pages 하위 경로 배포에서 절대 경로가 404 나는
+// 문제를 피한다 (src/ui/fonts.ts 주석 참고).
+const BACKGROUND_URL = 'assets/illustrations/backgrounds/background_001.webp';
+const ENTITY_ZIP_URL = 'assets/illustrations/hazard-entities/entity_001.zip';
 const CREATURE_SCALE = 0.25;
 const FALLBACK_ANIMATIONS = ['idle', 'hit', 'stun', 'roar'];
 

@@ -37,6 +37,14 @@
   자산이 없는 경우를 대비한 플레이스홀더 분기를 항상 유지한다.
 - 폰트·일러스트·오디오는 `public/assets/`(하위 폴더 구조와 규칙은 `public/assets/README.md`
   참고)에 두고, 넣은 뒤에는 실제로 코드에서 불러와 연결해야 적용된 것으로 본다.
+- **`public/` 아래 에셋을 코드에서 경로 문자열로 참조할 때 맨 앞에 슬래시를 붙이지
+  않는다** (`assets/...`이지 `/assets/...`이 아니다). GitHub Pages 프로젝트 페이지는
+  `https://<user>.github.io/ODD-SHIFT/`처럼 도메인 루트가 아닌 하위 경로에 배포되는데,
+  절대 경로는 그 하위 경로를 건너뛰고 도메인 루트를 가리켜 404가 난다 (실제로 폰트·Room
+  씬 배경이 이 문제로 배포 후 전부 깨진 적이 있다 — `VERSION.md` v0.1.6). 상대 경로는
+  현재 문서 위치 기준으로 풀리므로 로컬 개발 서버·GitHub Pages 어디서나 맞게 동작한다.
+  새 에셋 경로를 추가하면 `npm run build`로 만든 `dist/`를 하위 경로(`/ODD-SHIFT/`)에
+  직접 서빙해 재현해 보고 커밋한다.
 - **일러스트는 webp, 동영상은 webm으로 변환해서 커밋한다.** png/jpg·mp4 원본을 그대로
   두지 않는다 (`npm run assets:webp`, 자세한 내용은 `public/assets/README.md`).
 - **모든 텍스트는 `src/ui/fonts.ts` 폰트 매니저 + `src/ui/text.ts` 헬퍼를 거친다.**
