@@ -63,3 +63,16 @@
   tarball 경유로 받아지는 것을 확인해 CI에서도 문제 없을 것으로 본다.
 - 이 방식은 npm에 새 버전이 publish될 때까지의 임시 조치다. bell7080 계정으로
   `puppetforge`를 npm에 다시 publish하면 이 의존성을 다시 레지스트리 버전으로 되돌린다.
+
+## v0.1.3 — 2026-08-16
+
+**`puppetforge` 의존성을 특정 커밋 고정에서 GitHub `main` 브랜치 추적으로 바꿨다.**
+
+- npm은 앞으로도 puppetforge보다 뒤처질 것이므로, 커밋 하나하나를 손으로 올려 받는 대신
+  `git+https://github.com/Bell7080/WebGLE.git#main`으로 브랜치를 추적하기로 했다.
+  `npm install`은 설치 시점 커밋을 `package-lock.json`에 고정하므로 자동으로 계속
+  최신화되진 않지만, PuppetForge 관련 작업을 할 때마다
+  `rm -rf node_modules/puppetforge && npm install`로 다시 받아 버전 차이를 확인하는 것을
+  `CLAUDE.md` 규칙으로 남겼다.
+- 재설치 후 `entity_001.zip` 로드가 여전히 정상 동작하는 것을 확인했다(버전은 이번엔
+  변동 없이 0.32.0 그대로).

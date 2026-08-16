@@ -7,8 +7,13 @@
 - 세계관 확장 시 **정해지지 않은 부분을 임의로 창작하지 않는다.** `docs/세계관.md`의
   "미정" 항목은 실제로 비어 있는 것이며, 코드나 문서에 그럴듯한 설정을 지어내 채우지
   말고 사용자에게 먼저 물어본다. 확정된 설정만 "확정된 설정" 절로 옮긴다.
-- 기술 스택은 TypeScript + Phaser 3 + 자체 제작 npm 패키지 `puppetforge`
+- 기술 스택은 TypeScript + Phaser 3 + 자체 제작 패키지 `puppetforge`
   (2D 종이인형 스켈레탈 애니메이션 런타임, `puppetforge/phaser`로 Mesh 기반 렌더링 제공)다.
+  개발 속도가 npm publish 주기보다 빨라서, npm 레지스트리 대신
+  `git+https://github.com/Bell7080/WebGLE.git#main`(소스 저장소, bell7080 소유)을
+  직접 의존성으로 추적한다. `github:owner/repo` 축약 표기는 npm이 ssh URL로 풀 수 있어
+  SSH 키 없는 GitHub Actions 배포 환경에서 실패할 위험이 있으므로 항상 `git+https://`로
+  명시한다. 이는 npm에 최신 버전이 다시 publish될 때까지의 임시 조치다.
 - 이전 Three.js 3D 탑뷰 프로토타입(Project Plateau)은 폐기했다. 필드를 자유 이동하는
   3D 월드가 아니라, 하루 사이클(아침/점심/저녁/밤)을 오가는 관리 UI + 전투 연출 구조다.
 - 실제 PuppetForge 익스포트(zip) 에셋이 없어도 항상 빌드·플레이가 되도록, 위험체/캐릭터는
@@ -32,8 +37,13 @@
   자산이 없는 경우를 대비한 플레이스홀더 분기를 항상 유지한다.
 - 폰트·일러스트·오디오는 `public/assets/`(하위 폴더 구조와 규칙은 `public/assets/README.md`
   참고)에 두고, 넣은 뒤에는 실제로 코드에서 불러와 연결해야 적용된 것으로 본다.
-- `puppetforge` 버전을 올릴 때는 `docs/puppet-json.md`(패키지 동봉 문서) 기준 포맷
-  버전 변경 여부를 확인하고, 런타임 로더 코드에 영향이 있으면 함께 반영한다.
+- `puppetforge`는 위처럼 GitHub `main`을 추적하지만, `npm install`은 최초 설치 시
+  결과를 `package-lock.json`에 커밋 단위로 고정한다 — 자동으로 계속 최신화되지 않는다.
+  PuppetForge 관련 작업을 할 때(에셋을 새로 추가·테스트할 때 등)는 먼저
+  `rm -rf node_modules/puppetforge && npm install`로 `main`의 최신 커밋을 다시 받아
+  버전이 바뀌었는지 확인한다. 바뀌었다면 `node_modules/puppetforge/docs/puppet-json.md`
+  기준 포맷 버전 변경 여부를 확인하고, 런타임 로더 코드에 영향이 있으면 함께 반영한 뒤
+  typecheck·build로 검증하고 커밋한다.
 - 게임 상태(위험체 로스터, 자원, 시설, 날짜 등)는 단일 소스인 `GameState`로 관리하고,
   씬은 이를 읽고 쓰는 뷰로만 동작한다 — 씬 간에 상태를 중복 보관하지 않는다.
 
