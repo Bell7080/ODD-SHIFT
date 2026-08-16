@@ -13,6 +13,8 @@ export class GameState {
   employees: Employee[] = [];
   facilities: Facility[] = [];
   log: string[] = [];
+  /** 같은 날짜의 자동 생산이 씬 재진입으로 중복 지급되지 않게 기억한다. */
+  lastProductionDay = 0;
 
   /** 저녁에 찾아온 세 손님(꿈 후보). 하나를 고르면 비운다. */
   dreamOptions: DreamOption[] = [];
@@ -61,6 +63,24 @@ export class GameState {
 
   gainResource(type: ResourceType, amount: number): void {
     this.resources[type] += amount;
+  }
+
+  /** 모든 구금 개체의 작업 적성을 합산해 하루에 정확히 한 번 자원을 생산한다. */
+  produceDailyResources(): Resources | null {
+    if (this.lastProductionDay === this.day) return null;
+    const produced: Resources = { 채집자원: 0, 채광자원: 0, 연구자원: 0, 정비자원: 0 };
+    this.roster.forEach((entity) => {
+      produced.채집자원 += entity.work.gathering;
+      produced.채광자원 += entity.work.mining;
+      produced.연구자원 += entity.work.research;
+      produced.정비자원 += entity.work.maintenance;
+      // 생산에는 관리 부담이 따르므로 매일 스트레스도 소량 누적한다.
+      entity.care.stress = Math.min(100, entity.care.stress + 4);
+    });
+    (Object.keys(produced) as ResourceType[]).forEach((type) => this.gainResource(type, produced[type]));
+    this.lastProductionDay = this.day;
+    this.addLog(`${this.day}일차 자동 생산이 완료되었습니다.`);
+    return produced;
   }
 
   spendResource(type: ResourceType, amount: number): boolean {

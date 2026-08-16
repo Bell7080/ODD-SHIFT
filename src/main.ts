@@ -1,9 +1,6 @@
 import Phaser from 'phaser';
 import { loadFonts } from './ui/fonts';
 import { BootScene } from './scenes/boot-scene';
-import { MorningScene } from './scenes/morning-scene';
-import { NoonScene } from './scenes/noon-scene';
-import { EveningScene } from './scenes/evening-scene';
 import { GuestScene } from './scenes/guest-scene';
 import { NightScene } from './scenes/night-scene';
 import { CombatScene } from './scenes/combat-scene';
@@ -39,13 +36,9 @@ new Phaser.Game({
     width: 1280,
     height: 720,
   },
-  // 아침 → 점심 → 저녁 → 손님맞이 → 밤 → 전투 → 다음날 아침 순서로 씬을 등록한다.
-  // containment-room(구금 방)은 점심 페이즈에서 들어가는 별도 화면이라 이 순서 밖에 있다.
+  // 연구소 메인을 중심으로 손님 선택 → 밤 → 전투 화면만 별도 씬으로 등록한다.
   scene: [
     BootScene,
-    MorningScene,
-    NoonScene,
-    EveningScene,
     GuestScene,
     NightScene,
     CombatScene,

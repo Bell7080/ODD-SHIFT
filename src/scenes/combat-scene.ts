@@ -1,4 +1,4 @@
-// 포획형 턴제 전투 화면. 상대는 좌측 상단, 아군은 우측 하단에 두고 하단 로그 옆의
+// 포획형 턴제 전투 화면. 아군은 좌측, 상대는 우측에 두고 하단 로그 옆의
 // 2×2 명령 패널에서 공격·교체·회유·긴급 기상을 선택한다.
 import Phaser from 'phaser';
 import { gameState } from '../state/game-state';
@@ -74,8 +74,8 @@ export class CombatScene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor('#08070d');
     // 흐릿한 수평선과 플랫폼만 사용해 퍼펫과 상태 UI가 가장 먼저 읽히게 한다.
     this.add.rectangle(0, 0, 1280, 535, 0x0c0b14, 1).setOrigin(0, 0);
-    this.add.ellipse(290, 356, 360, 72, 0x291f38, 0.5).setStrokeStyle(2, 0x76569c, 0.38);
-    this.add.ellipse(930, 488, 390, 78, 0x163638, 0.42).setStrokeStyle(2, 0x43d7cf, 0.35);
+    this.add.ellipse(300, 452, 390, 78, 0x163638, 0.42).setStrokeStyle(2, 0x43d7cf, 0.35);
+    this.add.ellipse(940, 452, 390, 78, 0x291f38, 0.5).setStrokeStyle(2, 0x76569c, 0.38);
     this.add.rectangle(0, 535, 1280, 185, 0x060509, 0.98).setOrigin(0, 0);
     this.add.line(0, 535, 0, 0, 1280, 0, 0x8d68c7, 0.55).setOrigin(0, 0);
     makeText(this, 28, 548, 'BATTLE LOG', 'accent', { fontSize: '10px', color: '#43d7cf' });
@@ -88,13 +88,13 @@ export class CombatScene extends Phaser.Scene {
     const enemy = this.activeEnemy;
     // 정식 개체별 전투 에셋이 갖춰지기 전까지 양측 모두 001 퍼펫을 공통 사용한다.
     if (enemy) {
-      this.enemyVisual = await loadCreatureVisual(this, { ...enemy, puppetAssetUrl: TEMP_BATTLE_PUPPET }, 300, 350);
-      this.enemyVisual.setScale(0.24);
+      this.enemyVisual = await loadCreatureVisual(this, { ...enemy, puppetAssetUrl: TEMP_BATTLE_PUPPET }, 955, 452);
+      this.enemyVisual.setScale(0.26);
       this.enemyVisual.play('idle');
     }
     if (ally) {
-      this.allyVisual = await loadCreatureVisual(this, { ...ally, puppetAssetUrl: TEMP_BATTLE_PUPPET }, 955, 488);
-      this.allyVisual.setScale(0.28);
+      this.allyVisual = await loadCreatureVisual(this, { ...ally, puppetAssetUrl: TEMP_BATTLE_PUPPET }, 300, 452);
+      this.allyVisual.setScale(0.26);
       this.allyVisual.play('idle');
     }
   }
@@ -104,8 +104,8 @@ export class CombatScene extends Phaser.Scene {
     this.statusNodes = [];
     const enemy = this.activeEnemy;
     const ally = this.activeAlly;
-    if (enemy) this.drawStatusCard(48, 72, enemy, 'HOSTILE SIGNAL', 0x8d68c7);
-    if (ally) this.drawStatusCard(788, 310, ally, 'CONTAINED UNIT', 0x43d7cf);
+    if (ally) this.drawStatusCard(48, 72, ally, 'CONTAINED UNIT', 0x43d7cf);
+    if (enemy) this.drawStatusCard(788, 72, enemy, 'HOSTILE SIGNAL', 0x8d68c7);
     this.logText.setText(this.logLines.slice(-5).join('\n'));
   }
 
@@ -194,7 +194,7 @@ export class CombatScene extends Phaser.Scene {
       this.enemyVisual?.play('hit');
       this.logLines.push(`${ally.name}의 ${skill.name}! ${damage} 피해를 주었습니다.`);
     }
-    this.afterPlayerAction();
+    this.afterPlayerAction(true);
   }
 
   private tryPersuade(): void {
@@ -214,7 +214,7 @@ export class CombatScene extends Phaser.Scene {
     } else {
       this.logLines.push(`회유에 실패했습니다. 성공 확률 ${Math.round(result.chance * 100)}%.`);
     }
-    this.afterPlayerAction();
+    this.afterPlayerAction(false);
   }
 
   private useWakeUp(): void {
@@ -232,7 +232,7 @@ export class CombatScene extends Phaser.Scene {
     this.showMainCommands();
   }
 
-  private afterPlayerAction(): void {
+  private afterPlayerAction(returnToSkills: boolean): void {
     const enemy = this.activeEnemy;
     if (enemy && enemy.combat.hp <= 0) {
       this.logLines.push(`${enemy.name}의 신호가 소멸했습니다.`);
@@ -243,14 +243,14 @@ export class CombatScene extends Phaser.Scene {
       }
       void this.reloadBattleVisuals().then(() => {
         this.renderStatus();
-        this.showMainCommands();
+        returnToSkills ? this.showSkills() : this.showMainCommands();
       });
       return;
     }
-    this.resolveEnemyTurn();
+    this.resolveEnemyTurn(returnToSkills);
   }
 
-  private resolveEnemyTurn(): void {
+  private resolveEnemyTurn(returnToSkills = false): void {
     const enemy = this.activeEnemy;
     const ally = this.activeAlly;
     if (!enemy || !ally) return;
@@ -276,7 +276,8 @@ export class CombatScene extends Phaser.Scene {
       return;
     }
     this.renderStatus();
-    this.showMainCommands();
+    // 공격을 골랐던 턴은 기술 패널을 유지해 공격 메뉴를 매번 다시 열지 않게 한다.
+    returnToSkills ? this.showSkills() : this.showMainCommands();
   }
 
   private endCombat(victory: boolean): void {
@@ -294,7 +295,7 @@ export class CombatScene extends Phaser.Scene {
         member.combat.hp = Math.max(member.combat.hp, Math.round(member.combat.maxHp * 0.5));
       });
       gameState.goToNextMorning();
-      this.scene.start('morning');
+      this.scene.start('containment-room');
     });
   }
 }
