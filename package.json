@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "phaser": "^3.90.0",
-    "puppetforge": "^0.25.1"
+    "puppetforge": "git+https://github.com/Bell7080/WebGLE.git#bed490c73742c40dfeb8d27ba44334e0e01e99d2"
   },
   "devDependencies": {
     "typescript": "^5.9.2",

@@ -43,3 +43,23 @@
 - `public/assets/README.md`에 폴더 구조, Vite가 `/assets/...` 경로로 그대로 서빙한다는 점,
   PuppetForge 캐릭터 zip은 이 폴더가 아니라 별도 경로를 쓴다는 점을 문서화했다.
 - `CLAUDE.md` 개발 규칙에 이 폴더를 참조하도록 연결했다.
+
+## v0.1.2 — 2026-08-16
+
+**`puppetforge` 의존성을 npm 레지스트리(0.25.1)에서 GitHub 소스(0.32.0)로 전환해,
+사용자가 추가한 첫 실제 위험체 에셋(`entity_001.zip`)이 로드되도록 고쳤다.**
+
+- `entity_001.zip`(puppet.json v14)을 npm의 `puppetforge@0.25.1`로 읽으면
+  "이 파일은 더 최신 버전입니다" 오류로 실패했다 — 그 npm 버전은 v12까지만 지원한다.
+  npm 레지스트리에는 0.18.0 · 0.25.1 두 버전만 있어 더 받아올 최신판이 없었다.
+- 소스 저장소(`github.com/Bell7080/WebGLE`, main HEAD `bed490c`)는 `package.json` 기준
+  0.32.0이고 puppet.json v14를 지원한다. 이를 빌드해 Node·Phaser 양쪽에서 테스트한
+  결과 `entity_001`(튜토리얼용 헝겊 고양이 인형, 애니메이션 `idle`/`hit`/`stun`/`roar`)이
+  정상적으로 로드·재생됐다.
+- `package.json`의 `puppetforge` 의존성을 npm 레지스트리 대신
+  `git+https://github.com/Bell7080/WebGLE.git#<commit>`으로 커밋 고정했다. `github:` 축약
+  표기는 npm이 내부적으로 ssh URL을 우선 시도할 수 있어 GitHub Actions처럼 SSH 키가 없는
+  환경에서 실패할 위험이 있어 명시적으로 `git+https://`를 썼다 — 실제로는 codeload
+  tarball 경유로 받아지는 것을 확인해 CI에서도 문제 없을 것으로 본다.
+- 이 방식은 npm에 새 버전이 publish될 때까지의 임시 조치다. bell7080 계정으로
+  `puppetforge`를 npm에 다시 publish하면 이 의존성을 다시 레지스트리 버전으로 되돌린다.
