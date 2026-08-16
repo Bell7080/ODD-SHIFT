@@ -6,12 +6,17 @@ import type { HazardEntity } from '../data/types';
 
 export interface CreatureVisual {
   readonly gameObject: Phaser.GameObjects.GameObject;
-  playIdle(): void;
+  /** 이 개체가 실제로 가진 애니메이션 이름들. 플레이스홀더면 빈 배열. */
+  readonly animations: string[];
+  /** 있는 이름이면 재생하고 true, 없으면(플레이스홀더 포함) 아무 일도 하지 않고 false. */
+  play(name: string): boolean;
+  setScale(scale: number): void;
   destroy(): void;
 }
 
 class PlaceholderCreature implements CreatureVisual {
   readonly gameObject: Phaser.GameObjects.Container;
+  readonly animations: string[] = [];
   private readonly body: Phaser.GameObjects.Arc;
 
   constructor(scene: Phaser.Scene, entity: HazardEntity, x: number, y: number) {
@@ -21,12 +26,9 @@ class PlaceholderCreature implements CreatureVisual {
       .text(0, radius + 6, entity.name, { fontSize: '11px', color: '#e8dcff' })
       .setOrigin(0.5, 0);
     this.gameObject = scene.add.container(x, y, [this.body, label]);
-  }
-
-  playIdle(): void {
     // 기질 태그별 진폭 차이를 자세히 재현하진 못하지만, 실제 애니메이션 도입 전에도
     // 개체마다 다른 인상을 주기 위해 가벼운 대기 트윈을 건다.
-    this.body.scene.tweens.add({
+    scene.tweens.add({
       targets: this.body,
       scaleX: 1.05,
       scaleY: 0.95,
@@ -35,6 +37,14 @@ class PlaceholderCreature implements CreatureVisual {
       repeat: -1,
       ease: 'Sine.easeInOut',
     });
+  }
+
+  play(): boolean {
+    return false;
+  }
+
+  setScale(scale: number): void {
+    this.gameObject.setScale(scale);
   }
 
   destroy(): void {
@@ -55,8 +65,10 @@ export async function loadCreatureVisual(
       creature.play('idle');
       return {
         gameObject: creature,
-        playIdle: () => {
-          creature.play('idle');
+        animations: creature.animations,
+        play: (name: string) => creature.play(name),
+        setScale: (scale: number) => {
+          creature.setScale(scale);
         },
         destroy: () => creature.destroy(),
       };
@@ -64,7 +76,5 @@ export async function loadCreatureVisual(
       console.warn(`[puppet-loader] ${entity.name} 에셋 로드 실패, 플레이스홀더로 대체합니다.`, error);
     }
   }
-  const placeholder = new PlaceholderCreature(scene, entity, x, y);
-  placeholder.playIdle();
-  return placeholder;
+  return new PlaceholderCreature(scene, entity, x, y);
 }

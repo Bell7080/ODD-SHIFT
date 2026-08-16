@@ -6,6 +6,7 @@ import { attemptCapture } from '../systems/capture';
 import { grantExperience } from '../systems/leveling';
 import type { HazardEntity } from '../data/types';
 import { drawHud } from '../ui/hud';
+import { makeButton, makeText } from '../ui/text';
 
 export class CombatScene extends Phaser.Scene {
   private party: HazardEntity[] = [];
@@ -31,8 +32,8 @@ export class CombatScene extends Phaser.Scene {
     this.logLines = [`${gameState.selectedGuestLabel}의 꿈속으로 들어왔습니다.`, `${this.enemies.length}마리의 위험체가 나타났습니다.`];
 
     drawHud(this, gameState);
-    this.statusText = this.add.text(24, 60, '', { fontSize: '13px', color: '#e8dcff', wordWrap: { width: 900 } });
-    this.logText = this.add.text(24, 560, '', { fontSize: '12px', color: '#9683c4', wordWrap: { width: 1100 } });
+    this.statusText = makeText(this, 24, 60, '', 'body', { fontSize: '13px', color: '#e8dcff', wordWrap: { width: 900 } });
+    this.logText = makeText(this, 24, 560, '', 'body', { fontSize: '12px', color: '#9683c4', wordWrap: { width: 1100 } });
 
     this.renderStatus();
     this.promptNextAction();
@@ -64,18 +65,11 @@ export class CombatScene extends Phaser.Scene {
     this.actionNodes = [];
   }
 
-  private makeButton(x: number, y: number, label: string, onClick: () => void): Phaser.GameObjects.Text {
-    const button = this.add
-      .text(x, y, label, {
-        fontSize: '13px',
-        color: '#0a0710',
-        backgroundColor: '#c9b6ff',
-        padding: { x: 8, y: 5 },
-      })
-      .setInteractive({ useHandCursor: true })
-      .on('pointerup', onClick);
-    this.actionNodes.push(button);
-    return button;
+  /** 전투 액션 버튼. 다음 라운드 그리기 전에 clearActionNodes로 지울 수 있게 목록에 등록해 둔다. */
+  private addActionButton(x: number, y: number, label: string, onClick: () => void): void {
+    this.actionNodes.push(
+      makeButton(this, x, y, label, onClick, { fontSize: '13px', backgroundColor: '#c9b6ff', padding: { x: 8, y: 5 } }),
+    );
   }
 
   private promptNextAction(): void {
@@ -96,21 +90,19 @@ export class CombatScene extends Phaser.Scene {
       return;
     }
 
-    const label = this.add.text(24, 320, `${actor.name}의 행동을 선택하세요`, {
-      fontSize: '14px',
-      color: '#f2e9ff',
-    });
-    this.actionNodes.push(label);
+    this.actionNodes.push(
+      makeText(this, 24, 320, `${actor.name}의 행동을 선택하세요`, 'heading', { fontSize: '14px', color: '#f2e9ff' }),
+    );
 
-    this.makeButton(24, 350, '공격', () => this.playerAttack(actor));
-    this.makeButton(120, 350, '방어', () => this.playerDefend(actor));
+    this.addActionButton(24, 350, '공격', () => this.playerAttack(actor));
+    this.addActionButton(120, 350, '방어', () => this.playerDefend(actor));
 
     const target = this.aliveEnemies().find((enemy) => enemy.combat.hp / enemy.combat.maxHp <= 0.3);
     if (target) {
-      this.makeButton(220, 350, `구금 시도 → ${target.name}`, () => this.playerCapture(actor, target));
+      this.addActionButton(220, 350, `구금 시도 → ${target.name}`, () => this.playerCapture(actor, target));
     }
     if (this.wakeUpsRemaining > 0) {
-      this.makeButton(460, 350, `${gameState.selectedGuestLabel}을(를) 깨워 응급처치`, () => this.useWakeUp());
+      this.addActionButton(460, 350, `${gameState.selectedGuestLabel}을(를) 깨워 응급처치`, () => this.useWakeUp());
     }
   }
 
@@ -197,21 +189,20 @@ export class CombatScene extends Phaser.Scene {
     }
     this.renderStatus();
 
-    this.add
-      .text(24, 400, '아침으로 돌아가기 →', {
-        fontSize: '16px',
-        color: '#0a0710',
-        backgroundColor: '#9b7ee8',
-        padding: { x: 16, y: 10 },
-      })
-      .setInteractive({ useHandCursor: true })
-      .on('pointerup', () => {
+    makeButton(
+      this,
+      24,
+      400,
+      '아침으로 돌아가기 →',
+      () => {
         // 전투 후 최소 절반까지는 자연 회복시켜, 다음 밤 전멸이 그대로 반복되지 않게 한다.
         this.party.forEach((entity) => {
           entity.combat.hp = Math.max(entity.combat.hp, Math.round(entity.combat.maxHp * 0.5));
         });
         gameState.goToNextMorning();
         this.scene.start('morning');
-      });
+      },
+      { fontSize: '16px', padding: { x: 16, y: 10 } },
+    );
   }
 }

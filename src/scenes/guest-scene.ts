@@ -3,6 +3,7 @@
 import Phaser from 'phaser';
 import { gameState } from '../state/game-state';
 import { drawHud } from '../ui/hud';
+import { makeButton, makeText } from '../ui/text';
 
 export class GuestScene extends Phaser.Scene {
   constructor() {
@@ -11,33 +12,34 @@ export class GuestScene extends Phaser.Scene {
 
   create(): void {
     drawHud(this, gameState);
-    this.add.text(
+    makeText(
+      this,
       24,
       60,
       '오늘 밤, 악몽에 시달리는 손님 셋이 찾아왔습니다. 한 명을 골라 그 꿈으로 들어갑니다.',
+      'body',
       { fontSize: '14px', color: '#c7b8ee', wordWrap: { width: 900 } },
     );
 
     let y = 120;
     gameState.dreamOptions.forEach((option) => {
-      this.add.text(24, y, option.guestLabel, { fontSize: '15px', color: '#f2e9ff' });
-      this.add.text(24, y + 22, `"${option.hintLine}"`, {
+      makeText(this, 24, y, option.guestLabel, 'heading', { fontSize: '15px', color: '#f2e9ff' });
+      makeText(this, 24, y + 22, `"${option.hintLine}"`, 'body', {
         fontSize: '13px',
         color: '#b7a6dd',
         wordWrap: { width: 760 },
       });
-      this.add
-        .text(24, y + 50, '이 손님의 꿈으로 →', {
-          fontSize: '13px',
-          color: '#0a0710',
-          backgroundColor: '#9b7ee8',
-          padding: { x: 10, y: 6 },
-        })
-        .setInteractive({ useHandCursor: true })
-        .on('pointerup', () => {
+      makeButton(
+        this,
+        24,
+        y + 50,
+        '이 손님의 꿈으로 →',
+        () => {
           gameState.selectDream(option);
           this.scene.start('night');
-        });
+        },
+        { fontSize: '13px', padding: { x: 10, y: 6 } },
+      );
       y += 100;
     });
   }

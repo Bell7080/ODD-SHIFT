@@ -76,3 +76,45 @@
   `CLAUDE.md` 규칙으로 남겼다.
 - 재설치 후 `entity_001.zip` 로드가 여전히 정상 동작하는 것을 확인했다(버전은 이번엔
   변동 없이 0.32.0 그대로).
+
+## v0.1.4 — 2026-08-16
+
+**GitHub Actions 배포가 계속 실패하던 원인(`npm install` 누락)을 고쳤다.**
+
+- 3cade5f 이후 모든 배포 워크플로 실행이 `sh: 1: vite: not found` (exit 127)로 실패하고
+  있었다. `.github/workflows/deploy.yml`이 `npm run build`만 실행하고 `npm install`/`npm ci`
+  단계가 아예 없었기 때문이다 — 이전 Three.js 프로토타입은 로컬 npm 의존성이 없어서
+  드러나지 않았을 뿐, Vite로 전환한 시점부터 계속 깨져 있었다.
+- `actions/setup-node` 다음에 `npm ci` 단계를 추가하고 `cache: npm`을 켰다. 로컬에서
+  `rm -rf node_modules && npm ci`로 재현·검증했다.
+
+## v0.1.5 — 2026-08-16
+
+**방(Room) 배경·헝겊 고양이 인형을 실제로 화면에 세우는 테스트 씬을 만들고, 그 과정에서
+필요해진 폰트 매니저·webp 변환 규칙·고정 해상도 표시를 함께 갖췄다.**
+
+- **일러스트 webp 변환 규칙**: `public/assets/illustrations/` 하위는 항상 webp로 커밋한다
+  (`npm run assets:webp`, `scripts/convert-illustrations-to-webp.mjs`, sharp 기반, 품질 92).
+  사용자가 올린 `background_001.png`(8.1MB)·`char_001.png`(1.7MB)를 각각
+  540KB·172KB webp로 변환했다 — 육안 품질 차이 없음. 동영상은 webm 변환 규칙만 문서화
+  (`public/assets/README.md`, 아직 영상 에셋 없어 자동화 스크립트는 없음).
+- **폰트 매니저**: `src/ui/fonts.ts` + `src/ui/text.ts`를 만들어 모든 텍스트가 이 헬퍼를
+  거치게 했다. 사용자가 준 April16th 3종(Life·Promise·Safety)을 각각 body·heading·accent
+  역할에 배정했다. 이 3종은 COLR/CPAL 컬러 폰트라 `TextStyle.color`를 무시하고 항상
+  내장 팔레트(금색 계열, `#ffe100` 등)로 렌더링된다는 것을 확인해 문서화했다 — 버그 아님.
+- **고정 해상도 표시**: `main.ts`의 Phaser Scale 모드를 `RESIZE`에서 `FIT`으로 바꿨다.
+  기존 1280×720이 이미 16:9라 씬 레이아웃은 그대로 두고, 어떤 모니터 비율에서도
+  레터박스만 생기고 UI가 늘어나거나 뭉개지지 않게 했다 — "실제 패키징 게임 화면"처럼
+  보이게 하려는 목적.
+- **Room 테스트 씬**: `src/scenes/room-test-scene.ts` 추가. `background_001.webp`를 원본
+  해상도(2172×2896) 그대로 깔고, 화면(1280×720)보다 큰 만큼 카메라를 드래그로 움직여
+  둘러볼 수 있게 했다(카메라 bounds로 클램프). 그 방 안에 `entity_001.zip`(헝겊 고양이
+  인형)을 실제 크기로 세우고, 하단에 `idle`/`hit`/`stun`/`roar` 버튼을 놓아 눌러서
+  애니메이션을 바꿔볼 수 있게 했다. 정식 진행 흐름을 건드리지 않기 위해 평소 부팅은
+  그대로 아침부터 시작하고, `?scene=room-test` 쿼리로 들어갔을 때만 `BootScene`이 이
+  테스트 씬으로 보낸다.
+- `src/systems/puppet-loader.ts`의 `CreatureVisual`을 `playIdle()` 전용에서
+  `play(name)`(임의 애니메이션 재생) + `setScale()`로 넓혀 테스트 씬에서 쓸 수 있게 했다.
+- Playwright로 이 씬을 직접 열어 고양이가 방 바닥에 서 있는 것, 애니메이션 버튼 클릭,
+  드래그로 배경이 움직이며 고정 UI(제목·버튼)는 화면에 붙어 있는 것을 스크린샷으로
+  확인했다. 기존 하루 사이클 씬(아침 등)도 리팩터 후 오류 없이 렌더링되는 것을 재확인했다.

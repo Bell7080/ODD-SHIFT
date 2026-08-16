@@ -37,6 +37,11 @@
   자산이 없는 경우를 대비한 플레이스홀더 분기를 항상 유지한다.
 - 폰트·일러스트·오디오는 `public/assets/`(하위 폴더 구조와 규칙은 `public/assets/README.md`
   참고)에 두고, 넣은 뒤에는 실제로 코드에서 불러와 연결해야 적용된 것으로 본다.
+- **일러스트는 webp, 동영상은 webm으로 변환해서 커밋한다.** png/jpg·mp4 원본을 그대로
+  두지 않는다 (`npm run assets:webp`, 자세한 내용은 `public/assets/README.md`).
+- **모든 텍스트는 `src/ui/fonts.ts` 폰트 매니저 + `src/ui/text.ts` 헬퍼를 거친다.**
+  씬에서 `scene.add.text`를 직접 호출하지 않는다 — 새 폰트 추가나 서체 정책 변경은
+  `src/ui/fonts.ts` 한 곳만 고치면 게임 전체에 반영되게 한다.
 - `puppetforge`는 위처럼 GitHub `main`을 추적하지만, `npm install`은 최초 설치 시
   결과를 `package-lock.json`에 커밋 단위로 고정한다 — 자동으로 계속 최신화되지 않는다.
   PuppetForge 관련 작업을 할 때(에셋을 새로 추가·테스트할 때 등)는 먼저
