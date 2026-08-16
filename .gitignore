@@ -6,6 +6,3 @@ node_modules/
 
 # 운영체제와 에디터가 만드는 임시 파일을 제외합니다.
 .DS_Store
-
-# TypeScript 컴파일 산출물입니다.
-build/

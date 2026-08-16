@@ -3,25 +3,16 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Project Plateau</title>
-      <link rel="stylesheet" href="./src/styles.css" />
+    <title>이탈자 구금 부서</title>
+    <style>
+      /* 게임 캔버스가 브라우저 전체를 채우도록 여백과 스크롤을 제거한다. */
+      html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #0a0710; }
+      #game-root { width: 100%; height: 100%; }
+      #game-root canvas { display: block; }
+    </style>
   </head>
   <body>
-    <!-- 실제 게임 화면만 남겨 전체화면 플레이 감각을 우선 검증합니다. -->
-    <main class="game-shell" aria-label="Project Plateau playable map">
-      <canvas data-scene-canvas aria-label="플레이어와 랩터가 배치된 사전 제작 맵"></canvas>
-      <!-- 클릭한 자연물/적 옆에 뜨는 작은 액션 메뉴입니다. -->
-      <div class="action-menu" data-action-menu hidden></div>
-      <!-- 전투/채집 액션은 좌측 하단 패널에서 프로토타입 흐름만 먼저 검증합니다. -->
-      <section class="combat-panel" data-combat-panel hidden aria-label="전투 액션창">
-        <p data-combat-text>적의 움직임을 읽고 행동을 선택하세요.</p>
-        <div class="combat-actions">
-          <button type="button" data-combat-action="parry">패링</button>
-          <button type="button" data-combat-action="dodge">회피</button>
-          <button type="button" data-combat-action="counter">맞대응</button>
-        </div>
-      </section>
-    </main>
-    <script type="module" src="./build/main.js"></script>
+    <div id="game-root" aria-label="이탈자 구금 부서 게임 화면"></div>
+    <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
