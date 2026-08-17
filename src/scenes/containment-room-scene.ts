@@ -2,6 +2,7 @@
 // 팝업으로 띄우고, 직원은 구금실을 제외한 방과 통로를 계속 순회한다.
 import Phaser from 'phaser';
 import { gameState } from '../state/game-state';
+import { loadCreatureVisual, type CreatureVisual } from '../systems/puppet-loader';
 import { drawHud } from '../ui/hud';
 import { makeButton, makeText } from '../ui/text';
 
@@ -25,6 +26,11 @@ const ROOMS: LabRoom[] = [
 ];
 
 export class ContainmentRoomScene extends Phaser.Scene {
+  // 씬 종료 시 비동기로 만든 PuppetForge 오브젝트까지 명시적으로 정리한다.
+  private containedVisual: CreatureVisual | null = null;
+  // 연속 터치로 동일 모달이 중첩 생성되지 않게 열림 상태를 추적한다.
+  private phasePopupOpen = false;
+
   constructor() {
     super('containment-room');
   }
@@ -32,9 +38,11 @@ export class ContainmentRoomScene extends Phaser.Scene {
   create(): void {
     this.cameras.main.setBackgroundColor('#06070c');
     this.drawLaboratory();
+    void this.drawContainedCreature();
     this.drawEmployees();
     drawHud(this, gameState);
-    this.drawPhasePopup();
+    this.drawPhaseButton();
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.containedVisual?.destroy());
   }
 
   /** 방 사이의 빈 공간을 실제 이동 가능한 십자 통로와 중앙 허브로 연결한다. */
@@ -65,10 +73,20 @@ export class ContainmentRoomScene extends Phaser.Scene {
         fontSize: '11px', color: '#998cab', lineSpacing: 7,
       });
       this.add.rectangle(room.x + 225, room.y + 58, 88, 112, 0x170f20, 0.9).setOrigin(0, 0).setStrokeStyle(1, 0x8d68c7, 0.7);
-      makeText(this, room.x + 269, room.y + 110, '격리', 'accent', { fontSize: '11px', color: '#b999e5' }).setOrigin(0.5);
+      makeText(this, room.x + 269, room.y + 174, '격리 중', 'accent', { fontSize: '10px', color: '#b999e5' }).setOrigin(0.5);
     } else {
       makeText(this, room.x + room.width / 2, room.y + 104, '운영 중', 'body', { fontSize: '12px', color: '#6f8490' }).setOrigin(0.5);
     }
+  }
+
+  /** 로스터의 실제 퍼펫(또는 플레이스홀더)을 구금 윈도우 안에 표시한다. */
+  private async drawContainedCreature(): Promise<void> {
+    const entity = gameState.roster[0];
+    if (!entity) return;
+    this.containedVisual = await loadCreatureVisual(this, entity, 303, 218);
+    // 전투용 퍼펫을 88×112 관찰창에 맞게 축소해 상태 문구와 겹치지 않게 한다.
+    this.containedVisual.setScale(0.085);
+    this.containedVisual.play('idle');
   }
 
   /** 직원마다 서로 다른 비구금 지점을 왕복시켜 생활감 있는 순찰 연출을 만든다. */
@@ -94,8 +112,18 @@ export class ContainmentRoomScene extends Phaser.Scene {
     });
   }
 
+  /** 평상시에는 관제도를 열어 두고, 하단 버튼으로만 날짜·페이즈 모달을 연다. */
+  private drawPhaseButton(): void {
+    const phaseLabels = { morning: '아침', noon: '점심', evening: '저녁', guests: '손님맞이', night: '밤', combat: '전투' };
+    makeButton(this, 640, 692, `${gameState.day}일차 · ${phaseLabels[gameState.phase]} 업무 열기  ↑`, () => this.drawPhasePopup(), {
+      fontSize: '15px', padding: { x: 20, y: 8 },
+    }).setOrigin(0.5, 1);
+  }
+
   /** 현재 시간대의 할 일만 모달에 올려 연구소 맥락을 잃지 않고 하루를 진행한다. */
   private drawPhasePopup(): void {
+    if (this.phasePopupOpen) return;
+    this.phasePopupOpen = true;
     // 관제도의 상단 방들은 계속 보이게 두고, 읽기와 진행 동선은 중앙 하단 한 축에 모은다.
     this.add.rectangle(640, 530, 620, 276, 0x05050a, 0.96).setStrokeStyle(2, 0x8d68c7, 0.9);
     const titles = { morning: '아침 업무 보고', noon: '점심 자동 생산', evening: '저녁 운영', guests: '손님 접수 준비', night: '야간 진입', combat: '전투 중' };

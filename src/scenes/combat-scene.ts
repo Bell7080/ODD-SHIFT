@@ -9,8 +9,9 @@ import type { HazardEntity } from '../data/types';
 import { makeButton, makeText } from '../ui/text';
 
 const TEMP_BATTLE_PUPPET = 'assets/illustrations/hazard-entities/entity_001.zip';
-// PuppetForge 좌표는 텍스처 중앙을 기준으로 하므로, 발끝이 y=452 발판에 닿는 높이로 올린다.
-const BATTLE_PUPPET_ORIGIN_Y = 330;
+// 양측 발판 높이에 맞춘 개별 원점으로 적은 위, 아군은 아래인 대각선 구도를 만든다.
+const ALLY_PUPPET_ORIGIN_Y = 360;
+const ENEMY_PUPPET_ORIGIN_Y = 278;
 
 interface BattleSkill {
   name: string;
@@ -76,8 +77,8 @@ export class CombatScene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor('#08070d');
     // 흐릿한 수평선과 플랫폼만 사용해 퍼펫과 상태 UI가 가장 먼저 읽히게 한다.
     this.add.rectangle(0, 0, 1280, 535, 0x0c0b14, 1).setOrigin(0, 0);
-    this.add.ellipse(300, 452, 390, 78, 0x163638, 0.42).setStrokeStyle(2, 0x43d7cf, 0.35);
-    this.add.ellipse(940, 452, 390, 78, 0x291f38, 0.5).setStrokeStyle(2, 0x76569c, 0.38);
+    this.add.ellipse(330, 482, 390, 78, 0x163638, 0.42).setStrokeStyle(2, 0x43d7cf, 0.35);
+    this.add.ellipse(900, 400, 390, 78, 0x291f38, 0.5).setStrokeStyle(2, 0x76569c, 0.38);
     this.add.rectangle(0, 535, 1280, 185, 0x060509, 0.98).setOrigin(0, 0);
     this.add.line(0, 535, 0, 0, 1280, 0, 0x8d68c7, 0.55).setOrigin(0, 0);
     makeText(this, 28, 548, 'BATTLE LOG', 'accent', { fontSize: '10px', color: '#43d7cf' });
@@ -90,12 +91,12 @@ export class CombatScene extends Phaser.Scene {
     const enemy = this.activeEnemy;
     // 정식 개체별 전투 에셋이 갖춰지기 전까지 양측 모두 001 퍼펫을 공통 사용한다.
     if (enemy) {
-      this.enemyVisual = await loadCreatureVisual(this, { ...enemy, puppetAssetUrl: TEMP_BATTLE_PUPPET }, 955, BATTLE_PUPPET_ORIGIN_Y);
+      this.enemyVisual = await loadCreatureVisual(this, { ...enemy, puppetAssetUrl: TEMP_BATTLE_PUPPET }, 900, ENEMY_PUPPET_ORIGIN_Y);
       this.enemyVisual.setScale(0.26);
       this.enemyVisual.play('idle');
     }
     if (ally) {
-      this.allyVisual = await loadCreatureVisual(this, { ...ally, puppetAssetUrl: TEMP_BATTLE_PUPPET }, 300, BATTLE_PUPPET_ORIGIN_Y);
+      this.allyVisual = await loadCreatureVisual(this, { ...ally, puppetAssetUrl: TEMP_BATTLE_PUPPET }, 330, ALLY_PUPPET_ORIGIN_Y);
       this.allyVisual.setScale(0.26);
       this.allyVisual.play('idle');
     }
