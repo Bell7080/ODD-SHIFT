@@ -96,19 +96,20 @@ export class ContainmentRoomScene extends Phaser.Scene {
 
   /** 현재 시간대의 할 일만 모달에 올려 연구소 맥락을 잃지 않고 하루를 진행한다. */
   private drawPhasePopup(): void {
-    this.add.rectangle(640, 360, 600, 350, 0x05050a, 0.96).setStrokeStyle(2, 0x8d68c7, 0.9);
+    // 관제도의 상단 방들은 계속 보이게 두고, 읽기와 진행 동선은 중앙 하단 한 축에 모은다.
+    this.add.rectangle(640, 530, 620, 276, 0x05050a, 0.96).setStrokeStyle(2, 0x8d68c7, 0.9);
     const titles = { morning: '아침 업무 보고', noon: '점심 자동 생산', evening: '저녁 운영', guests: '손님 접수 준비', night: '야간 진입', combat: '전투 중' };
-    makeText(this, 640, 225, titles[gameState.phase], 'heading', { fontSize: '23px', color: '#f2e9ff' }).setOrigin(0.5);
+    makeText(this, 640, 418, titles[gameState.phase], 'heading', { fontSize: '23px', color: '#f2e9ff' }).setOrigin(0.5);
     if (gameState.phase === 'morning') this.drawMorningPopup();
     if (gameState.phase === 'noon') this.drawNoonPopup();
     if (gameState.phase === 'evening') this.drawEveningPopup();
   }
 
   private drawMorningPopup(): void {
-    makeText(this, 390, 275, `직원 ${gameState.employees.length}명 · 구금 개체 ${gameState.roster.length}체\n시설 안정도 ${gameState.facilities[0]?.stability ?? 0}%`, 'body', {
-      fontSize: '14px', color: '#b7a6dd', lineSpacing: 10,
-    });
-    makeButton(this, 780, 470, '점심 업무 시작  →', () => { gameState.goToNoon(); this.scene.restart(); }, { fontSize: '15px', padding: { x: 14, y: 8 } });
+    makeText(this, 640, 465, `직원 ${gameState.employees.length}명 · 구금 개체 ${gameState.roster.length}체\n시설 안정도 ${gameState.facilities[0]?.stability ?? 0}%`, 'body', {
+      fontSize: '14px', color: '#b7a6dd', align: 'center', lineSpacing: 10,
+    }).setOrigin(0.5, 0);
+    makeButton(this, 640, 608, '점심 업무 시작  →', () => { gameState.goToNoon(); this.scene.restart(); }, { fontSize: '15px', padding: { x: 14, y: 8 } }).setOrigin(0.5);
   }
 
   private drawNoonPopup(): void {
@@ -116,20 +117,20 @@ export class ContainmentRoomScene extends Phaser.Scene {
     const summary = produced
       ? Object.entries(produced).map(([type, amount]) => `${type}  +${amount}`).join('\n')
       : '오늘의 생산은 이미 완료되었습니다.';
-    makeText(this, 390, 275, `구금 개체의 작업 적성에 따라 일일 생산했습니다.\n\n${summary}`, 'body', {
-      fontSize: '14px', color: '#b7a6dd', lineSpacing: 8,
-    });
-    makeButton(this, 780, 470, '저녁 운영으로  →', () => { gameState.goToEvening(); this.scene.restart(); }, { fontSize: '15px', padding: { x: 14, y: 8 } });
+    makeText(this, 640, 455, `구금 개체의 작업 적성에 따라 일일 생산했습니다.\n\n${summary}`, 'body', {
+      fontSize: '14px', color: '#b7a6dd', align: 'center', lineSpacing: 8,
+    }).setOrigin(0.5, 0);
+    makeButton(this, 640, 622, '저녁 운영으로  →', () => { gameState.goToEvening(); this.scene.restart(); }, { fontSize: '15px', padding: { x: 14, y: 8 } }).setOrigin(0.5);
   }
 
   private drawEveningPopup(): void {
     const facility = gameState.facilities[0];
-    makeText(this, 390, 275, '오늘 생산된 자원으로 연구동 운영을 마무리하십시오.', 'body', { fontSize: '14px', color: '#b7a6dd' });
-    makeButton(this, 390, 330, '정비 20 · 안정도 강화', () => {
+    makeText(this, 640, 468, '오늘 생산된 자원으로 연구동 운영을 마무리하십시오.', 'body', { fontSize: '14px', color: '#b7a6dd' }).setOrigin(0.5);
+    makeButton(this, 640, 526, '정비 20 · 안정도 강화', () => {
       if (facility && gameState.spendResource('정비자원', 20)) facility.stability = Math.min(100, facility.stability + 10);
       else gameState.addLog('정비자원이 부족합니다.');
       this.scene.restart();
-    }, { fontSize: '13px', backgroundColor: '#7fd4a2', padding: { x: 10, y: 6 } });
-    makeButton(this, 780, 470, '손님 맞이하기  →', () => { gameState.goToGuestSelection(); this.scene.start('guests'); }, { fontSize: '15px', padding: { x: 14, y: 8 } });
+    }, { fontSize: '13px', backgroundColor: '#7fd4a2', padding: { x: 10, y: 6 } }).setOrigin(0.5);
+    makeButton(this, 640, 608, '손님 맞이하기  →', () => { gameState.goToGuestSelection(); this.scene.start('guests'); }, { fontSize: '15px', padding: { x: 14, y: 8 } }).setOrigin(0.5);
   }
 }

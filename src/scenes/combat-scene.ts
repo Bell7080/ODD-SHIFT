@@ -9,6 +9,8 @@ import type { HazardEntity } from '../data/types';
 import { makeButton, makeText } from '../ui/text';
 
 const TEMP_BATTLE_PUPPET = 'assets/illustrations/hazard-entities/entity_001.zip';
+// PuppetForge 좌표는 텍스처 중앙을 기준으로 하므로, 발끝이 y=452 발판에 닿는 높이로 올린다.
+const BATTLE_PUPPET_ORIGIN_Y = 330;
 
 interface BattleSkill {
   name: string;
@@ -88,12 +90,12 @@ export class CombatScene extends Phaser.Scene {
     const enemy = this.activeEnemy;
     // 정식 개체별 전투 에셋이 갖춰지기 전까지 양측 모두 001 퍼펫을 공통 사용한다.
     if (enemy) {
-      this.enemyVisual = await loadCreatureVisual(this, { ...enemy, puppetAssetUrl: TEMP_BATTLE_PUPPET }, 955, 452);
+      this.enemyVisual = await loadCreatureVisual(this, { ...enemy, puppetAssetUrl: TEMP_BATTLE_PUPPET }, 955, BATTLE_PUPPET_ORIGIN_Y);
       this.enemyVisual.setScale(0.26);
       this.enemyVisual.play('idle');
     }
     if (ally) {
-      this.allyVisual = await loadCreatureVisual(this, { ...ally, puppetAssetUrl: TEMP_BATTLE_PUPPET }, 300, 452);
+      this.allyVisual = await loadCreatureVisual(this, { ...ally, puppetAssetUrl: TEMP_BATTLE_PUPPET }, 300, BATTLE_PUPPET_ORIGIN_Y);
       this.allyVisual.setScale(0.26);
       this.allyVisual.play('idle');
     }
@@ -159,6 +161,11 @@ export class CombatScene extends Phaser.Scene {
       const y = index < 2 ? 558 : 632;
       this.addCommand(x, y, skill.name, skill.note, () => this.useSkill(skill));
     });
+    // 네 기술 슬롯은 그대로 유지하고, 패널 위의 작은 보조 버튼으로 선택 취소를 제공한다.
+    const backButton = makeButton(this, 1228, 526, '← 뒤로', () => this.showMainCommands(), {
+      fontSize: '11px', color: '#e8dcff', backgroundColor: '#463457', padding: { x: 9, y: 5 },
+    }).setOrigin(1, 0.5);
+    this.commandNodes.push(backButton);
   }
 
   private showSwitches(): void {
