@@ -43,6 +43,10 @@ export class ContainmentRoomScene extends Phaser.Scene {
   }
 
   create(): void {
+    // Phaser의 scene.restart()는 같은 인스턴스를 재사용하므로 이전 팝업 잠금을 반드시 초기화한다.
+    // 이 값이 true로 남으면 아침에서 점심으로 넘어온 뒤 업무창을 다시 열 수 없었다.
+    this.phasePopupOpen = false;
+    this.containmentTargets = [];
     this.cameras.main.setBackgroundColor('#06070c');
     this.drawLaboratory();
     void this.drawContainedCreature();
@@ -165,8 +169,10 @@ export class ContainmentRoomScene extends Phaser.Scene {
     const entity = gameState.roster[0];
     if (!entity) return;
     this.containedVisual = await loadCreatureVisual(this, entity, 112, 342);
-    // 전투용 퍼펫을 88×112 관찰창에 맞게 축소해 상태 문구와 겹치지 않게 한다.
+    // 전투용 퍼펫을 축소한 뒤 실제 렌더 경계의 하단을 구금 칸 바닥에 맞춰 애매하게 뜨거나
+    // 몸 중심을 기준으로 박히지 않게 한다.
     this.containedVisual.setScale(0.045);
+    this.containedVisual.alignFeetTo(396);
     this.containedVisual.play('idle');
   }
 
