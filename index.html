@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>이탈자 구금 부서</title>
     <style>
-      /* 게임 캔버스가 브라우저 전체를 채우도록 여백과 스크롤을 제거한다. */
+      /* 모바일 주소창까지 고려한 동적 높이를 사용하고 캔버스를 안전 영역 중앙에 둔다. */
       html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #0a0710; }
-      #game-root { width: 100%; height: 100%; }
-      #game-root canvas { display: block; }
+      #game-root { width: 100vw; height: 100dvh; display: flex; align-items: center; justify-content: center; }
+      #game-root canvas { display: block; max-width: 100%; max-height: 100%; touch-action: none; }
     </style>
   </head>
   <body>
