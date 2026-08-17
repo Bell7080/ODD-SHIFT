@@ -66,6 +66,16 @@ export interface Employee {
   aptitude: Attribute;
   skill: number; // 0~100
   fatigue: number; // 0~100. 높으면 사고 위험.
+  /** 현재 담당하는 위험체. null이면 층 통로를 순찰한다. */
+  assignedEntityId?: string;
+}
+
+/** 직원 카드를 구금 칸에 놓기 전에 UI가 보여주는 확정적 배치 효과. */
+export interface AssignmentPreview {
+  stressReduction: number;
+  portBonus: number;
+  combatBonus: number;
+  aptitudeMatch: boolean;
 }
 
 export interface Facility {
