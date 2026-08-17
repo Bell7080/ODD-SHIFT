@@ -66,5 +66,43 @@ export class GuestScene extends Phaser.Scene {
       });
       card.setInteractive({ useHandCursor: true });
     });
+
+    // 전투를 더 받지 않을 때만 관리자가 명시적으로 하루를 끝낸다.
+    makeText(this, 1020, 676, `오늘 응대 ${gameState.guestsServedToday}건`, 'body', { fontSize: '11px', color: '#8e82a9' }).setOrigin(1, 0.5);
+    makeButton(this, 1244, 676, '영업 마감  →', () => this.requestBusinessClose(), {
+      fontSize: '13px', color: '#f4eaff', backgroundColor: '#4b263d', padding: { x: 14, y: 8 },
+    }).setOrigin(1, 0.5);
+  }
+
+  /** 위험 개체가 있으면 바로 날짜를 넘기지 않고 긴급 대응 선택지를 먼저 제공한다. */
+  private requestBusinessClose(): void {
+    const critical = gameState.getCriticalEntities();
+    if (!critical.length) { this.closeBusiness(); return; }
+    const entity = critical[0];
+    this.add.rectangle(640, 360, 1280, 720, 0x020205, 0.78).setDepth(40).setInteractive();
+    this.add.polygon(640, 360, [-350, -190, 320, -190, 350, -160, 350, 190, -320, 190, -350, 160], 0x1d0d18, 1)
+      .setStrokeStyle(6, 0xd35872, 0.95).setDepth(41);
+    makeText(this, 640, 205, 'CONTAINMENT WARNING', 'accent', { fontSize: '13px', color: '#ff7996' }).setOrigin(0.5).setDepth(42);
+    makeText(this, 640, 250, '영업 마감 전 긴급 대응 필요', 'heading', { fontSize: '25px', color: '#fff0f5' }).setOrigin(0.5).setDepth(42);
+    makeText(this, 640, 305, `${entity.name}\n몽환 ${entity.care.stress}% · 위험 개체 ${critical.length}체\n대응하지 않으면 시설 피해·사망·탈출이 발생할 수 있습니다.`, 'body', {
+      fontSize: '14px', color: '#d8bccb', align: 'center', lineSpacing: 8,
+    }).setOrigin(0.5, 0).setDepth(42);
+    makeButton(this, 440, 455, '정비자원 25 · 안정화', () => {
+      if (gameState.stabilizeEntity(entity.id, 'maintenance')) this.scene.restart();
+      else gameState.addLog('긴급 안정화 실패 · 정비자원 부족');
+    }, { fontSize: '12px', backgroundColor: '#43a79f' }).setOrigin(0.5).setDepth(42);
+    makeButton(this, 640, 455, 'PORT 30 · 안정화', () => {
+      if (gameState.stabilizeEntity(entity.id, 'ports')) this.scene.restart();
+      else gameState.addLog('긴급 안정화 실패 · PORT 부족');
+    }, { fontSize: '12px' }).setOrigin(0.5).setDepth(42);
+    makeButton(this, 840, 455, '위험 감수 · 마감', () => this.closeBusiness(), {
+      fontSize: '12px', color: '#fff0f5', backgroundColor: '#732e48',
+    }).setOrigin(0.5).setDepth(42);
+  }
+
+  /** 경고 확인이 끝난 뒤에만 날짜 정산과 관제도 복귀를 실행한다. */
+  private closeBusiness(): void {
+    gameState.goToNextMorning();
+    this.scene.start('containment-room');
   }
 }

@@ -21,7 +21,7 @@ export function drawHud(scene: Phaser.Scene, state: GameState): Phaser.GameObjec
     scene,
     24,
     18,
-    `${state.day}일차 · ${PHASE_LABEL[state.phase]}   |   ${resourceText}`,
+    `${state.day}일차 · ${PHASE_LABEL[state.phase]}   |   PORT ${state.ports}   |   사기 ${state.morale}%   |   ${resourceText}`,
     'body',
     { fontSize: '16px', color: '#d8c9ff' },
   );

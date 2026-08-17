@@ -45,7 +45,12 @@ export class CombatScene extends Phaser.Scene {
   }
 
   async create(): Promise<void> {
-    this.party = gameState.roster.slice(0, 3);
+    // 기본 3체, 구금 시설 수용량이 6칸 이상이면 원정 편성도 최대 6체로 확장한다.
+    const partyLimit = (gameState.facilities[0]?.capacity ?? 0) >= 6 ? 6 : 3;
+    const selected = gameState.selectedPartyIds
+      .map((id) => gameState.roster.find((entity) => entity.id === id))
+      .filter((entity): entity is HazardEntity => Boolean(entity));
+    this.party = (selected.length ? selected : gameState.roster).slice(0, partyLimit);
     this.enemies = gameState.encounterQueue;
     this.activePartyIndex = 0;
     this.activeEnemyIndex = 0;
@@ -109,7 +114,24 @@ export class CombatScene extends Phaser.Scene {
     const ally = this.activeAlly;
     if (ally) this.drawStatusCard(48, 72, ally, 'CONTAINED UNIT', 0x43d7cf);
     if (enemy) this.drawStatusCard(788, 72, enemy, 'HOSTILE SIGNAL', 0x8d68c7);
+    // 태그전에서는 두 번째 전선 개체의 상태도 축약 카드로 동시에 노출한다.
+    if (gameState.nightPlan?.tagTeam) {
+      const supportAlly = this.party[this.activePartyIndex + 1];
+      const supportEnemy = this.enemies[this.activeEnemyIndex + 1];
+      if (supportAlly) this.drawTagStatus(48, 192, supportAlly, 'ALLY TAG', 0x43d7cf);
+      if (supportEnemy) this.drawTagStatus(1008, 192, supportEnemy, 'ENEMY TAG', 0x8d68c7);
+    }
     this.logText.setText(this.logLines.slice(-5).join('\n'));
+  }
+
+  /** 주 상태 카드 아래의 작은 태그 슬롯으로 2대2 동시 전선을 표현한다. */
+  private drawTagStatus(x: number, y: number, entity: HazardEntity, label: string, accent: number): void {
+    const add = (node: Phaser.GameObjects.GameObject): void => { this.statusNodes.push(node); };
+    const ratio = Phaser.Math.Clamp(entity.combat.hp / entity.combat.maxHp, 0, 1);
+    add(this.add.polygon(x + 105, y + 28, [-105, -28, 96, -28, 105, -19, 101, 28, -101, 28], 0x0d0a13, 0.94).setStrokeStyle(2, accent, 0.75));
+    add(makeText(this, x + 10, y - 17, `${label} · ${entity.name}`, 'accent', { fontSize: '8px', color: '#cfc1df' }));
+    add(this.add.rectangle(x + 10, y + 8, 180, 7, 0x281f30, 1).setOrigin(0, 0));
+    add(this.add.rectangle(x + 10, y + 8, 180 * ratio, 7, accent, 1).setOrigin(0, 0));
   }
 
   private drawStatusCard(x: number, y: number, entity: HazardEntity, label: string, accent: number): void {
@@ -196,11 +218,24 @@ export class CombatScene extends Phaser.Scene {
       this.defending = true;
       this.logLines.push(`${ally.name}이(가) 웅크려 반격에 대비합니다.`);
     } else {
-      const damage = Math.max(1, Math.round(ally.combat.attack * skill.power - enemy.combat.defense));
+      const supportBonus = gameState.getCombatSupportBonus(ally.id);
+      const damage = Math.max(1, Math.round((ally.combat.attack + supportBonus) * skill.power - enemy.combat.defense));
       enemy.combat.hp = Math.max(0, enemy.combat.hp - damage);
       this.allyVisual?.play('roar');
       this.enemyVisual?.play('hit');
       this.logLines.push(`${ally.name}의 ${skill.name}! ${damage} 피해를 주었습니다.`);
+      // 태그전에서는 두 번째 아군도 같은 기술 계열의 지원 공격을 두 번째 적에게 가한다.
+      if (gameState.nightPlan?.tagTeam) {
+        const supportAlly = this.party[this.activePartyIndex + 1];
+        const supportEnemy = this.enemies[this.activeEnemyIndex + 1];
+        if (supportAlly && supportEnemy && supportAlly.combat.hp > 0 && supportEnemy.combat.hp > 0) {
+          const supportPower = gameState.getCombatSupportBonus(supportAlly.id);
+          const tagDamage = Math.max(1, Math.round((supportAlly.combat.attack + supportPower) * skill.power - supportEnemy.combat.defense));
+          supportEnemy.combat.hp = Math.max(0, supportEnemy.combat.hp - tagDamage);
+          this.logLines.push(`태그 지원: ${supportAlly.name}이(가) ${supportEnemy.name}에게 ${tagDamage} 피해.`);
+          if (supportEnemy.combat.hp <= 0) this.promoteTagReplacement(this.enemies, this.activeEnemyIndex + 1);
+        }
+      }
     }
     this.afterPlayerAction(true);
   }
@@ -270,6 +305,18 @@ export class CombatScene extends Phaser.Scene {
     this.logLines.push(`${enemy.name}의 반격! ${ally.name}이(가) ${damage} 피해를 받았습니다.`);
     this.defending = false;
 
+    // 2대2 태그전의 두 번째 적도 두 번째 아군에게 같은 턴에 행동한다.
+    if (gameState.nightPlan?.tagTeam) {
+      const supportEnemy = this.enemies[this.activeEnemyIndex + 1];
+      const supportAlly = this.party[this.activePartyIndex + 1];
+      if (supportEnemy && supportAlly && supportEnemy.combat.hp > 0 && supportAlly.combat.hp > 0) {
+        const tagDamage = Math.max(1, Math.round(supportEnemy.combat.attack - supportAlly.combat.defense));
+        supportAlly.combat.hp = Math.max(0, supportAlly.combat.hp - tagDamage);
+        this.logLines.push(`태그 전선: ${supportEnemy.name} → ${supportAlly.name} ${tagDamage} 피해.`);
+        if (supportAlly.combat.hp <= 0) this.promoteTagReplacement(this.party, this.activePartyIndex + 1);
+      }
+    }
+
     if (ally.combat.hp <= 0) {
       const next = this.party.findIndex((member) => member.combat.hp > 0);
       if (next < 0) {
@@ -288,6 +335,14 @@ export class CombatScene extends Phaser.Scene {
     returnToSkills ? this.showSkills() : this.showMainCommands();
   }
 
+  /** 태그 슬롯이 쓰러지면 뒤 편성의 첫 생존 개체를 같은 슬롯으로 당겨 빈 전선을 메운다. */
+  private promoteTagReplacement(side: HazardEntity[], slotIndex: number): void {
+    const replacementIndex = side.findIndex((entity, index) => index > slotIndex && entity.combat.hp > 0);
+    if (replacementIndex < 0) return;
+    [side[slotIndex], side[replacementIndex]] = [side[replacementIndex], side[slotIndex]];
+    this.logLines.push(`${side[slotIndex].name}이(가) 빈 태그 슬롯에 진입했습니다.`);
+  }
+
   private endCombat(victory: boolean): void {
     this.clearCommands();
     if (victory) {
@@ -298,12 +353,11 @@ export class CombatScene extends Phaser.Scene {
       this.logLines.push('구금 개체가 전투 불능입니다. 강제 복귀합니다.');
     }
     this.renderStatus();
-    this.addCommand(1008, 595, '아침으로 복귀', '전투 결과 정리', () => {
-      this.party.forEach((member) => {
-        member.combat.hp = Math.max(member.combat.hp, Math.round(member.combat.maxHp * 0.5));
-      });
-      gameState.goToNextMorning();
-      this.scene.start('containment-room');
-    });
+    // 한 번의 승리로 날짜를 강제 종료하지 않고 보상을 정산한 뒤 추가 손님 여부를 고른다.
+    makeButton(this, 1004, 650, victory ? 'PORT 정산 · 접수로 →' : '접수로 복귀 →', () => {
+      if (victory) gameState.settleGuestService();
+      else gameState.goToGuestSelection();
+      this.scene.start('guests');
+    }, { fontSize: '14px', padding: { x: 15, y: 9 } });
   }
 }
