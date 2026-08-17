@@ -11,6 +11,8 @@ export interface CreatureVisual {
   /** 있는 이름이면 재생하고 true, 없으면(플레이스홀더 포함) 아무 일도 하지 않고 false. */
   play(name: string): boolean;
   setScale(scale: number): void;
+  /** 외형의 실제 경계 하단(발끝)을 지정한 화면 y 좌표에 맞춘다. */
+  alignFeetTo(y: number): void;
   destroy(): void;
 }
 
@@ -47,6 +49,11 @@ class PlaceholderCreature implements CreatureVisual {
     this.gameObject.setScale(scale);
   }
 
+  alignFeetTo(y: number): void {
+    // 플레이스홀더도 원의 중심이 아니라 이름표까지 포함한 실제 외형 하단으로 정렬한다.
+    this.gameObject.y += y - this.gameObject.getBounds().bottom;
+  }
+
   destroy(): void {
     this.gameObject.destroy();
   }
@@ -69,6 +76,12 @@ export async function loadCreatureVisual(
         play: (name: string) => creature.play(name),
         setScale: (scale: number) => {
           creature.setScale(scale);
+        },
+        // PuppetForge 원점은 에셋마다 달라질 수 있으므로 원점 추정 대신 렌더 경계를 측정한다.
+        alignFeetTo: (feetY: number) => {
+          // PuppetCreature는 중앙 원점 Mesh이며 getBounds API를 노출하지 않으므로 텍스처의
+          // 실제 높이와 현재 스케일로 화면 하단을 계산한다.
+          creature.y = feetY - (creature.height * Math.abs(creature.scaleY)) / 2;
         },
         destroy: () => creature.destroy(),
       };

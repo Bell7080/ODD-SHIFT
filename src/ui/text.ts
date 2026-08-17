@@ -31,12 +31,19 @@ export function makeButton(
   onClick: () => void,
   style: Phaser.Types.GameObjects.Text.TextStyle = {},
 ): Phaser.GameObjects.Text {
+  // 버튼은 별도 색면을 두르지 않고 큰 타이포그래피 자체를 조작 요소로 사용한다.
+  // 호출부에 남아 있는 과거 backgroundColor 값도 여기서 걷어 내 화면 전체의 버튼 양식을 통일한다.
+  const { backgroundColor: _legacyBackground, ...textStyle } = style;
+  void _legacyBackground;
   return makeText(scene, x, y, label, 'accent', {
-    color: '#0a0710',
-    backgroundColor: '#9b7ee8',
-    padding: { x: 12, y: 7 },
-    ...style,
+    fontSize: '20px',
+    color: '#e9ddff',
+    padding: { x: 14, y: 9 },
+    ...textStyle,
   })
     .setInteractive({ useHandCursor: true })
+    // 배경 없이도 클릭 가능 여부를 즉시 알 수 있도록 기존 보라·청록 네온 색으로 반응한다.
+    .on('pointerover', function (this: Phaser.GameObjects.Text) { this.setColor('#43d7cf'); })
+    .on('pointerout', function (this: Phaser.GameObjects.Text) { this.setColor(textStyle.color?.toString() ?? '#e9ddff'); })
     .on('pointerup', onClick);
 }
